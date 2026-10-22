@@ -19,7 +19,7 @@ jokingtim24688/local-ai-with-claude-ui is GONE — account terminated; code was 
   repeat guard w/ world, never-empty turn, thinking), server (Flask SSE, X-NC guard).
 - tests/: pytest with FakeBackend. Run `python -m pytest -q tests`.
 
-## Next
+## Next (Eclipse WIP: theme.css, api.ts, Working.tsx, Chat.tsx half-written — send() + render still missing; main.tsx, App shell, src-tauri not started)
 - static/ web UI DONE (orbit, thinking, approvals). skills/ 6 starters DONE.
 - skills/ content. Then Eclipse scaffold in eclipse/.
 
