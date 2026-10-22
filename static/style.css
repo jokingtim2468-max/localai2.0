@@ -1,0 +1,48 @@
+:root{--bg:#0b1020;--panel:#121a30;--raised:#1a2442;--line:#26324f;--text:#e3e8f4;--muted:#8a94ad;
+  --accent:#e8b98a;--ok:#a6e3a1;--err:#f38ba8;--mono:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.5 var(--sans)}
+body{display:flex}
+.side{width:240px;flex:0 0 240px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:14px;gap:10px}
+.brand{font-weight:600;font-size:16px;display:flex;align-items:center;gap:8px}
+.moon{width:14px;height:14px;border-radius:50%;box-shadow:inset -4px -2px 0 0 var(--accent)}
+.btn{background:var(--accent);color:#1a1424;border:0;border-radius:10px;padding:8px;font-weight:600;cursor:pointer}
+#chats{list-style:none;margin:0;padding:0;overflow:auto;flex:1}
+#chats li{padding:7px 9px;border-radius:8px;cursor:pointer;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#chats li.on,#chats li:hover{background:var(--raised);color:var(--text)}
+.foot{font-size:12px}.muted{color:var(--muted)}
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.chat{flex:1;overflow:auto;padding:24px max(16px,calc(50% - 390px))}
+.msg{margin:10px 0;white-space:pre-wrap;word-wrap:break-word}
+.msg.user{margin-left:auto;max-width:80%;width:fit-content;background:var(--raised);padding:9px 13px;border-radius:12px}
+.tool{font:12px var(--mono);margin:6px 0;color:var(--muted)}
+.tool .res{white-space:pre-wrap;background:#070b16;border:1px solid var(--line);border-radius:8px;padding:7px 10px;margin-top:4px;max-height:200px;overflow:auto}
+.tool .res.ok{color:var(--ok)}.tool .res.err{color:var(--err)}
+.notice{font-size:12px;color:var(--muted);font-style:italic}
+.approval{border:1px solid var(--accent);border-radius:10px;padding:10px;margin:8px 0}
+.approval pre{font:12px var(--mono);white-space:pre-wrap;margin:6px 0}
+.approval button{margin-right:6px}
+.wrap{padding:0 max(16px,calc(50% - 390px)) 16px}
+.composer{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.composer:focus-within{border-color:var(--accent)}
+.composer textarea{resize:none;background:none;border:0;color:var(--text);font:15px/1.5 var(--sans);outline:none;max-height:200px}
+.bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.spacer{flex:1}
+select{background:var(--raised);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:4px 10px}
+.chip{background:none;border:1px solid var(--line);color:var(--muted);border-radius:999px;padding:4px 11px;cursor:pointer}
+.chip.on{background:var(--raised);color:var(--text)}
+.send{width:34px;height:34px;border-radius:50%;border:0;background:var(--accent);color:#1a1424;font-size:16px;cursor:pointer}
+.send:disabled{opacity:.4}
+/* working orbit + shimmer words (animated from app.js via Web Animations) */
+.orbit-wrap{display:flex;align-items:center;gap:10px;margin:8px 0}
+.orbit{position:relative;width:28px;height:28px}
+.orbit .sun{position:absolute;left:50%;top:50%;width:9px;height:9px;margin:-4.5px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.orbit .arm{position:absolute;inset:0}
+.orbit .planet{position:absolute;left:50%;top:0;width:6px;height:6px;margin-left:-3px;border-radius:50%;background:#7f8db5}
+.shimmer{background:linear-gradient(90deg,var(--muted) 40%,#fff3e2 50%,var(--muted) 60%);background-size:200% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.otime{font:11px var(--mono);color:var(--muted);opacity:.7}
+.think{font-size:12.5px;color:var(--muted);margin:6px 0}
+.think summary{cursor:pointer}
+.think .body{white-space:pre-wrap;border-left:2px solid var(--line);padding-left:10px;margin-top:4px;max-height:200px;overflow:auto}
+@media (max-width:700px){.side{display:none}}

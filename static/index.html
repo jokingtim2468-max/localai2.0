@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Night Crew</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<aside class="side">
+  <div class="brand"><span class="moon"></span>Night Crew</div>
+  <button id="new" class="btn">+ New chat</button>
+  <ul id="chats"></ul>
+  <div class="foot"><span id="status" class="muted">connecting…</span></div>
+</aside>
+<main class="main">
+  <div id="chat" class="chat"></div>
+  <div class="wrap">
+    <form id="composer" class="composer">
+      <textarea id="input" rows="1" placeholder="What are we building tonight?"></textarea>
+      <div class="bar">
+        <select id="model" aria-label="model"></select>
+        <button type="button" class="chip on" id="tools">Tools</button>
+        <button type="button" class="chip" id="auto" title="run commands without asking">Auto</button>
+        <span class="spacer"></span>
+        <button id="send" class="send" type="submit" title="send">&#8593;</button>
+      </div>
+    </form>
+  </div>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

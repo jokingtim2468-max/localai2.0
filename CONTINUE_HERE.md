@@ -20,7 +20,7 @@ jokingtim24688/local-ai-with-claude-ui is GONE — account terminated; code was 
 - tests/: pytest with FakeBackend. Run `python -m pytest -q tests`.
 
 ## Next
-- static/ web UI (chat, orbit+shimmer words, thinking block, approvals, mini VM).
+- static/ web UI DONE (orbit, thinking, approvals). skills/ 6 starters DONE.
 - skills/ content. Then Eclipse scaffold in eclipse/.
 
 ## Redo from scratch
