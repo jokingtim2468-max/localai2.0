@@ -28,6 +28,18 @@ class Backend:
     def stream_chat(self, model, messages, tools=None, options=None, think=None, keep_alive=None):
         raise NotImplementedError
 
+    def bench(self, model: str) -> dict:
+        """Tokens per second on THIS machine (streamed chunks ~ tokens for non-Ollama)."""
+        import time
+        t0, first, n = time.time(), None, 0
+        for ev in self.stream_chat(model, [{"role": "user", "content": "Count from 1 to 60, comma separated."}]):
+            if ev.get("content"):
+                first = first or time.time()
+                n += 1
+        end = time.time()
+        gen = max(1e-6, end - (first or end))
+        return {"model": model, "tok_s": round(n / gen, 1), "first_token_s": round((first or end) - t0, 2)}
+
     def chat(self, model, messages, options=None) -> str:
         out = ""
         for ev in self.stream_chat(model, messages, options=options):
@@ -45,6 +57,30 @@ class Ollama(Backend):
                  "quant": (m.get("details") or {}).get("quantization_level", ""),
                  "params": (m.get("details") or {}).get("parameter_size", "")}
                 for m in r.json().get("models", [])]
+
+    def bench(self, model: str) -> dict:
+        r = httpx.post(self.url + "/api/generate", timeout=600, json={
+            "model": model, "prompt": "Count from 1 to 60, comma separated.", "stream": False})
+        d = r.json()
+        ev, dur = d.get("eval_count", 0), d.get("eval_duration", 0) or 1
+        return {"model": model, "tok_s": round(ev / (dur / 1e9), 1),
+                "first_token_s": round((d.get("load_duration", 0) + d.get("prompt_eval_duration", 0)) / 1e9, 2)}
+
+    def pull(self, model: str):
+        with httpx.stream("POST", self.url + "/api/pull", json={"model": model}, timeout=None) as r:
+            for line in r.iter_lines():
+                if line.strip():
+                    yield json.loads(line)
+
+    def delete(self, model: str) -> bool:
+        return httpx.request("DELETE", self.url + "/api/delete", json={"model": model}, timeout=30).status_code < 300
+
+    def stop_all(self) -> int:
+        n = 0
+        for m in httpx.get(self.url + "/api/ps", timeout=5).json().get("models", []):
+            httpx.post(self.url + "/api/generate", json={"model": m["name"], "keep_alive": 0}, timeout=30)
+            n += 1
+        return n
 
     def capabilities(self, model: str) -> list[str]:
         try:

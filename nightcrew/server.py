@@ -21,6 +21,28 @@ app = Flask(__name__, static_folder=None)
 PENDING: dict[str, dict] = {}
 
 
+# Eclipse's webview (Tauri) and its Vite dev server are the only other origins allowed in.
+ALLOWED_ORIGINS = {"tauri://localhost", "http://tauri.localhost", "https://tauri.localhost",
+                   "http://localhost:1420", "http://127.0.0.1:1420"}
+
+
+@app.before_request
+def preflight():
+    if request.method == "OPTIONS":
+        return Response(status=204)
+
+
+@app.after_request
+def cors(resp):
+    origin = request.headers.get("Origin", "")
+    if origin in ALLOWED_ORIGINS:
+        resp.headers["Access-Control-Allow-Origin"] = origin
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type, X-NC"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        resp.headers["Vary"] = "Origin"
+    return resp
+
+
 def guard():
     if request.headers.get("X-NC") != "1":
         return jsonify({"error": "missing X-NC header"}), 403
@@ -59,6 +81,73 @@ def api_models():
         return jsonify({"backend": cfg["backend"], "models": backends.get(cfg["backend"], cfg.get("backend_url", "")).models()})
     except Exception as e:
         return jsonify({"backend": cfg["backend"], "models": [], "error": f"{cfg['backend']} offline: {e}"})
+
+
+@app.get("/api/hardware")
+def api_hardware():
+    from . import hardware
+    info = hardware.detect()
+    return jsonify({"info": info, "recommend": hardware.recommend(info), "power": hardware.power()})
+
+
+@app.get("/api/power")
+def api_power():
+    from . import hardware
+    return jsonify(hardware.power())
+
+
+def _backend():
+    cfg = settings.load()
+    return backends.get(cfg["backend"], cfg.get("backend_url", ""))
+
+
+@app.post("/api/models/bench")
+def api_bench():
+    if (g := guard()):
+        return g
+    try:
+        return jsonify(_backend().bench((request.get_json(force=True) or {}).get("model", "")))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+
+@app.post("/api/models/pull")
+def api_pull():
+    if (g := guard()):
+        return g
+    name = (request.get_json(force=True) or {}).get("model", "")
+    be = _backend()
+    if not hasattr(be, "pull"):
+        return jsonify({"error": f"{be.kind} cannot pull; download the GGUF/MLX model yourself"}), 400
+
+    def stream():
+        try:
+            for d in be.pull(name):
+                yield sse("progress", d)
+        except Exception as e:
+            yield sse("error", str(e))
+        yield sse("done", {})
+    return Response(stream(), mimetype="text/event-stream")
+
+
+@app.post("/api/models/delete")
+def api_delete():
+    if (g := guard()):
+        return g
+    be = _backend()
+    ok = hasattr(be, "delete") and be.delete((request.get_json(force=True) or {}).get("model", ""))
+    return jsonify({"ok": bool(ok)})
+
+
+@app.post("/api/models/stop")
+def api_stop():
+    if (g := guard()):
+        return g
+    try:
+        be = _backend()
+        return jsonify({"stopped": be.stop_all() if hasattr(be, "stop_all") else 0})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
 
 
 @app.get("/api/memory")

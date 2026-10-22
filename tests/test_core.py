@@ -129,3 +129,19 @@ def test_server_guards_and_routes():
     assert "evil" not in settings.load()
     assert c.post("/api/chat", json={}).status_code == 403
     assert c.get("/api/models").status_code == 200        # offline backend -> error field, not a crash
+
+
+def test_cors_only_for_eclipse_origins():
+    from nightcrew.server import app
+    c = app.test_client()
+    ok = c.options("/api/chat", headers={"Origin": "tauri://localhost"})
+    assert ok.headers.get("Access-Control-Allow-Origin") == "tauri://localhost"
+    bad = c.options("/api/chat", headers={"Origin": "https://evil.example"})
+    assert "Access-Control-Allow-Origin" not in bad.headers
+
+
+def test_hardware_recommend_tiers():
+    from nightcrew import hardware
+    assert "32b" in hardware.recommend({"apple_silicon": True, "ram_gb": 36})["models"][0]
+    assert "7b" in hardware.recommend({"vram_gb": 8})["models"][0]
+    assert hardware.recommend({"os": "Darwin", "ram_gb": 16})["warning"].startswith("Intel")
