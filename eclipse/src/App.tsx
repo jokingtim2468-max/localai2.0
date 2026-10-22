@@ -6,6 +6,7 @@ import { Models } from "./Models";
 import { Cmd, Palette } from "./Palette";
 import { Planned } from "./Planned";
 import { Settings } from "./Settings";
+import { SetupBar } from "./SetupBar";
 
 const SCREENS: [string, string][] = [
   ["chat", "Chat"], ["projects", "Projects"], ["models", "Models"], ["game", "Game kit"],
@@ -123,6 +124,7 @@ export function App() {
       <footer className="status">
         <span><span className={"dot " + (core === "ok" ? "ok" : core === "down" ? "bad" : "")} />core {core === "ok" ? "running" : core === "down" ? "offline" : "starting"}</span>
         <span>{model || "no model"}</span>
+        {core === "ok" && <SetupBar />}
         <span className="grow" />
         <button onClick={() => setDrawer((d) => !d)}>logs</button>
         <button onClick={stopAll}>stop all models</button>

@@ -10,8 +10,8 @@ from . import paths
 DEFAULTS = {
     "backend": "ollama",          # ollama | llamacpp | mlx  (llamacpp/mlx = OpenAI-compatible server)
     "backend_url": "",            # blank = backend default
-    "model": "",                  # lead model; blank = first installed
-    "worker_model": "qwen2.5-coder:3b",
+    "model": "qwen-abliterated",  # ONE model for every tier: no swaps, nothing reloads on 8 GB VRAM
+    "worker_model": "qwen-abliterated",
     "num_ctx": 16384,
     "think": False,               # only sent to models that support thinking
     "trust_workspace": True,      # file edits inside the workspace need no approval

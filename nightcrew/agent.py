@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from . import backends, context, memory, sandbox, settings, skills
+from . import backends, context, escalation, memory, sandbox, settings, skills
 
 SYSTEM_PROMPT = """You are the lead developer agent in a local workbench. You build apps,
 games, GUIs and tools in the user's workspace folder using your tools.
@@ -22,6 +22,7 @@ Rules:
   conversation returned success. If something failed, say so plainly.
 - Know your limits: you can only touch the workspace; you cannot see the screen; check
   that a tool or program exists before relying on it.
+- When a fix fails twice, call escalate_debug (buddy first, then parent, swarm, mr_debug).
 - Use remember for durable facts (preferences, project decisions) as 'key: value'.
 - Finish the whole request before answering. Answers are short and concrete."""
 
@@ -43,7 +44,7 @@ def system_prompt(task: str) -> str:
 
 
 def tool_schemas() -> list:
-    return list(sandbox.SCHEMAS) + [memory.SCHEMA, skills.SCHEMA]
+    return list(sandbox.SCHEMAS) + [memory.SCHEMA, skills.SCHEMA, escalation.SCHEMA]
 
 
 def needs_approval(name: str, ask: bool) -> bool:
@@ -55,6 +56,8 @@ def needs_approval(name: str, ask: bool) -> bool:
 def call_tool(name: str, args: dict) -> str:
     if name == "remember":
         return memory.remember(args.get("note", ""))
+    if name == "escalate_debug":
+        return escalation.escalate(args.get("problem", ""), args.get("tier", "buddy"), args.get("tried", ""))
     if name == "load_skill":
         return skills.load_skill(args.get("name", ""))
     return sandbox.run_tool(name, args)
@@ -70,6 +73,13 @@ def run_turn(history: list, emit, approve=lambda n, a: True, model: str = "",
     be = backend or backends.get(cfg["backend"], cfg.get("backend_url", ""))
     if not model:
         model = cfg.get("model") or ""
+    from . import model_setup
+    st = model_setup.SETUP
+    if model == model_setup.ALIAS and st["state"] in ("checking", "pulling", "copying"):
+        pct = f" {100 * st['completed'] // st['total']}%" if st.get("total") else ""
+        emit("token", f"(The {model} model is still being set up: {st['status']}{pct}. Try again when it finishes.)")
+        emit("done", {})
+        return ""
     if not model:
         try:
             model = be.models()[0]["name"]
@@ -93,6 +103,7 @@ def run_turn(history: list, emit, approve=lambda n, a: True, model: str = "",
                                {"role": "user", "content": text[-12000:]}], options={"num_ctx": ctx}).strip()
 
     shown, world, done_calls, strikes = "", 0, {}, 0
+    fails, tier_i = 0, 0           # consecutive failed builds/runs -> push up the escalation ladder
     try:
         for _ in range(max_rounds):
             context.collapse(msgs)
@@ -138,8 +149,15 @@ def run_turn(history: list, emit, approve=lambda n, a: True, model: str = "",
                     result = call_tool(name, args)
                     if not failed(result) and name in sandbox.WRITE_TOOLS:
                         world += 1          # files changed: re-running a build is a new call
+                if name == "run_command":
+                    fails = fails + 1 if failed(result) else 0
                 emit("tool_result", {"name": name, "result": result})
                 msgs.append({"role": "tool", "content": result, "name": name})
+            if fails >= 2 and tier_i < len(escalation.TIERS):
+                tier = escalation.TIERS[tier_i]
+                tier_i, fails = tier_i + 1, 0
+                emit("notice", f"two failed runs in a row: escalating to {tier}")
+                msgs.append({"role": "user", "content": f"(system) That failed twice. Call escalate_debug now with tier='{tier}', the exact error and code, and what you tried."})
             if looping:
                 strikes += 1
                 if strikes > 1:

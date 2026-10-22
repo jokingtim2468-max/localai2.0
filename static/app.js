@@ -160,3 +160,19 @@ $("#auto").onclick = (e) => { state.auto = !state.auto; e.target.classList.toggl
     $("#status").textContent = d.error || `${d.backend} · ${d.models.length} models`;
   } catch { $("#status").textContent = "core offline"; }
 })();
+
+// ---------- model setup progress (download runs in the core's background thread) ----------
+(async function setupPoll() {
+  try {
+    const s = await (await fetch("/api/setup")).json();
+    const st = $("#status");
+    if (s.state === "pulling" && s.total) {
+      const pct = Math.floor((100 * s.completed) / s.total);
+      st.textContent = `Downloading qwen-abliterated: ${pct}% (${(s.completed / 2 ** 30).toFixed(2)} of ${(s.total / 2 ** 30).toFixed(2)} GB)`;
+    } else if (["checking", "pulling", "copying"].includes(s.state)) {
+      st.textContent = `Setting up qwen-abliterated: ${s.status}`;
+    } else if (s.state === "error") { st.textContent = s.error; return; }
+    else if (s.state === "ready") { return; }
+  } catch { return; }
+  setTimeout(setupPoll, 1500);
+})();

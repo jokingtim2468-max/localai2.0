@@ -150,6 +150,12 @@ def api_stop():
         return jsonify({"error": str(e)}), 502
 
 
+@app.get("/api/setup")
+def api_setup():
+    from . import model_setup
+    return jsonify(model_setup.SETUP)
+
+
 @app.get("/api/memory")
 def api_memory():
     return jsonify({"text": memory.text()})
@@ -260,6 +266,9 @@ def main(argv=None):
     a = ap.parse_args(argv)
     skills.seed()
     skills.scan()
+    if not os.environ.get("NIGHTCREW_NO_SETUP"):
+        from . import model_setup
+        model_setup.start_background()      # never blocks: the UI shows progress
     print(f"Night Crew core on http://127.0.0.1:{a.port}", flush=True)
     app.run(host="127.0.0.1", port=a.port, threaded=True)
 
