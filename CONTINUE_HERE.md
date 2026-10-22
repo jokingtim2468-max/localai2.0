@@ -26,3 +26,12 @@ jokingtim24688/local-ai-with-claude-ui is GONE — account terminated; code was 
 ## Redo from scratch
 Recreate files listed above per their docstrings; run tests; commit; push
 `git push -u origin claude/amazing-keller-dvibe7`.
+
+## Model + escalation (f553b2e)
+- nightcrew/model_setup.py: ensure() = pull hf.co/QuantFactory/Qwen2.5-7B-Instruct-abliterated-v2-GGUF:Q4_K_M
+  then copy -> qwen-abliterated; background thread at server start; /api/setup; CLI bar via
+  `python -m nightcrew.model_setup`. Settings default model/worker = qwen-abliterated.
+- nightcrew/escalation.py: buddy -> parent(Hermes) -> swarm(3 sequential) -> mr_debug, all on the
+  resident model (keep_alive -1; foreign model keep_alive 0). Agent auto-nudges up a tier after
+  2 consecutive failed run_command. Tests: tests/test_setup_escalation.py.
+- scripts/setup_windows.ps1: OLLAMA_MAX_LOADED_MODELS=1, NUM_PARALLEL=1, FLASH_ATTENTION=1, KV q4_0.
