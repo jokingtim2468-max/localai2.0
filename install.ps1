@@ -1,6 +1,7 @@
 # One-command install of Eclipse on Windows:
-#   irm https://github.com/jokingtim2468-max/localai2.0/releases/download/eclipse-latest/install.ps1 | iex
+#   [Net.ServicePointManager]::SecurityProtocol = "Tls12"; irm https://github.com/jokingtim2468-max/localai2.0/releases/download/eclipse-latest/install.ps1 | iex
 $ErrorActionPreference = "Stop"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12   # Windows PowerShell 5 defaults to old TLS
 $url = "https://github.com/jokingtim2468-max/localai2.0/releases/download/eclipse-latest/EclipseSetup.exe"
 $exe = Join-Path $env:TEMP "EclipseSetup.exe"
 Write-Host "Downloading Eclipse..."
