@@ -80,3 +80,14 @@ def test_two_failed_runs_push_to_buddy():
                    backend=be, model="fake", ask=False)
     assert any(e == "notice" and "buddy" in d for e, d in ev)
     assert "tier='buddy'" in json.dumps(be.seen[-1])
+
+
+def test_recommend_two_lists_sorted_by_fit():
+    from nightcrew import catalog
+    r = catalog.recommend({"vram_gb": 8}, installed={"qwen-abliterated:latest"})
+    assert all("abliterat" in m["name"] for m in r["abliterated"])
+    assert not any("abliterat" in m["name"] for m in r["regular"])
+    fits = [m["fit"] for m in r["abliterated"]]
+    assert fits == sorted(fits, key=["fits", "tight", "too big"].index)
+    assert next(m for m in r["abliterated"] if m["name"] == "qwen-abliterated")["installed"]
+    assert next(m for m in r["regular"] if m["name"] == "llama3.3:70b")["fit"] == "too big"

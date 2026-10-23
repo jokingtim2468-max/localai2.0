@@ -132,6 +132,10 @@ def api_pull():
     if (g := guard()):
         return g
     name = (request.get_json(force=True) or {}).get("model", "")
+    from . import model_setup
+    if name == model_setup.ALIAS:                 # not on the registry: pull the HF file + copy
+        threading.Thread(target=model_setup.ensure, daemon=True).start()
+        return jsonify({"ok": True, "setup": True})
     be = _backend()
     if not hasattr(be, "pull"):
         return jsonify({"error": f"{be.kind} cannot pull; download the GGUF/MLX model yourself"}), 400
@@ -164,6 +168,16 @@ def api_stop():
         return jsonify({"stopped": be.stop_all() if hasattr(be, "stop_all") else 0})
     except Exception as e:
         return jsonify({"error": str(e)}), 502
+
+
+@app.get("/api/recommend")
+def api_recommend():
+    from . import catalog
+    try:
+        have = {m["name"] for m in _backend().models()}
+    except Exception:
+        have = set()
+    return jsonify(catalog.recommend(installed=have))
 
 
 @app.get("/api/setup")
