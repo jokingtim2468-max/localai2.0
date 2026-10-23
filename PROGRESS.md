@@ -22,3 +22,7 @@ Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
 - Rifle chosen: MK18 (game/assets/rifle_mk18.glb, flat colours, no logo textures). Next: animated fire with hands, rifle_burst sound.
 - Balaclava eye hole narrowed: HOLE_UP=0.2 HOLE_DOWN=0.06 (brows to nose bridge), smooth blend by height.
 - FINAL pistol clip: blender_workflow/fire_fps_pistol.py (hands env as v3) -> fin/frames; muzzle computed from front-most slide verts; arms parented to gun (rigid recoil). Then mux sound (22 shots, frame 20+3k @60fps) -> webm + baseline mp4.
+- Character: black sweatpants (logo dropped), balaclava fits inside hood (PAD 1.1,1.08,1.04 + SIDE_TAPER 0.16 from y+0.06), hidden face skin deleted except eye window.
+- Scale: character 6 ft (1.829 m). Pistol = Glock 17 length 0.202 m (GUN_LEN env; model was 0.128!). MK18: 10.3in barrel, OAL ~26.75in collapsed (0.68 m).
+- Recoil v2: per-shot random kick <=0.1 ft (3.05 cm) x/up only, returns to centre; tracers aim at crosshair 30 m out. THIRD=1 FULLBODY=1 = side camera.
+- TODO queue (user): pistol inspect anim; MK18 shooting (base pose+hands, then mechanics, NO spare mag shown); research real shooting/walk/run reference (YouTube/mocap) for animation.

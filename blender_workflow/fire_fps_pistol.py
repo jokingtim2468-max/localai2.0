@@ -7,7 +7,7 @@ bpy.ops.import_scene.gltf(filepath=CHAR)
 arm = next(o for o in sc.objects if o.type == "ARMATURE")
 meshes = [o for o in sc.objects if o.type == "MESH"]
 top = max((o.matrix_world @ V(c)).z for o in meshes for c in o.bound_box)
-s = 1.78 / top                                       # real height
+s = 1.829 / top                                     # 6 ft                                       # real height
 root = arm
 while root.parent: root = root.parent
 root.scale = [v * s for v in root.scale]
@@ -15,6 +15,9 @@ bpy.context.view_layer.update()
 # first person: hide everything above the shoulders and the legs
 for o in meshes:
     mats = [m.name for m in o.data.materials if m]
+    if os.environ.get("THIRD"):
+        if "mouth" in "".join(mats): o.hide_render = True
+        continue
     if any(k in "".join(mats) for k in ("ted_facemap", "mouth", "eyeball", "Material_003", "bbshoes", "pants", "Leather")) or o.name == "BandanaMask":
         o.hide_render = True
 ARMB = ("UpperArm", "Forearm", "Hand", "Ulna", "Wrist", "Finger", "Bicep", "Elbow")
@@ -50,6 +53,9 @@ GRIP = V((0.0, -0.035, 0.018))                       # grip centre in the pistol
 for o in gun_parts:
     mw = o.matrix_world.copy(); o.parent = gun; o.matrix_world = mathutils.Matrix.Translation(-GRIP) @ mw
 gun.rotation_euler = (0, 0, math.pi)
+_L = max((o.matrix_world @ V(c)).y for o in gun_parts for c in o.bound_box) - min((o.matrix_world @ V(c)).y for o in gun_parts for c in o.bound_box)
+gun.scale = [float(os.environ.get("GUN_LEN", "0.202")) / _L] * 3
+print("GUN length was", round(_L, 4), "scale", round(gun.scale[0], 3))
 gun.location = eye + V(tuple(float(x) for x in os.environ.get("GUNPOS", "-0.1,-0.33,-0.11").split(",")))     # character right = -X         # right of centre, out in front, below the eye
 bpy.context.view_layer.update()
 
@@ -174,7 +180,7 @@ def emit(name, rgb, strength, alpha=1.0):
 # ---------------- final pistol clip: posed arms ride the gun, gun drives everything ----------------
 import mathutils as _m
 root.parent = None
-mw = root.matrix_world.copy(); root.parent = gun; root.matrix_world = mw     # arms follow recoil rigidly
+mw = root.matrix_world.copy(); root.parent = None if os.environ.get("THIRD") else gun; root.matrix_world = mw     # arms follow recoil rigidly
 for e in (r_pole, l_pole):
     e.parent = gun
 rig = gun
@@ -202,22 +208,18 @@ def key(obj, path, frame, value, interp=None):
                 for kp in fc.keyframe_points:
                     if int(kp.co.x) == frame: kp.interpolation = interp
 
-# ---- recoil: snap up + back on each shot, climb that builds over the burst, sideways drift ----
+# ---- recoil: each shot kicks the gun at most 0.1 ft (3.05 cm) left/right/up from where it fired, then it
+#      settles back on the centre so every round goes to the crosshair ----
+LIM = 0.03048
 base_loc = rig.location.copy(); base_rot = rig.rotation_euler.copy()
 key(rig, "location", START, base_loc); key(rig, "rotation_euler", START, base_rot)
-climb, drift = 0.0, 0.0
-for i, f in enumerate(SHOTS):
-    climb = min(climb + math.radians(0.45), math.radians(6))          # muzzle rise accumulates
-    drift = max(-0.05, min(0.05, drift + math.radians(rng.uniform(-0.5, 0.5))))
-    kick = math.radians(rng.uniform(2.5, 3.6))
-    key(rig, "rotation_euler", f, (base_rot.x + climb, 0, base_rot.z + drift), "LINEAR")
-    key(rig, "location", f, base_loc + mathutils.Vector((0, 0.003, climb * 0.02)), "LINEAR")
-    key(rig, "rotation_euler", f + 1, (base_rot.x + climb + kick, rng.uniform(-0.008, 0.008), base_rot.z + drift), "BEZIER")
-    key(rig, "location", f + 1, base_loc + mathutils.Vector((rng.uniform(-0.0015, 0.0015), 0.014, 0.004 + climb * 0.02)), "BEZIER")
+for f in SHOTS:
+    dx, dz = rng.uniform(-1, 1) * LIM, rng.uniform(0.35, 1) * LIM
+    key(rig, "location", f, base_loc, "LINEAR"); key(rig, "rotation_euler", f, base_rot, "LINEAR")
+    key(rig, "location", f + 1, base_loc + mathutils.Vector((dx, 0, dz)), "BEZIER")
+    key(rig, "rotation_euler", f + 1, (base_rot.x + dz * 1.6, 0, base_rot.z + dx * 1.2), "BEZIER")
 end = SHOTS[-1] + 3
-key(rig, "rotation_euler", end, (base_rot.x + climb * 0.8, 0, base_rot.z + drift), "BEZIER")
-key(rig, "rotation_euler", end + 30, base_rot, "BEZIER")           # the shooter brings it back down
-key(rig, "location", end + 30, base_loc, "BEZIER")
+key(rig, "location", end, base_loc, "BEZIER"); key(rig, "rotation_euler", end, base_rot, "BEZIER")
 
 # ---- slide: fully back on frame +1, home on frame +3 ----
 for o in slide:
@@ -257,7 +259,7 @@ tracer_mat = emit("Tracer", (1.0, 0.05, 0.05), 10, alpha=0.5)
 for i, f in enumerate(SHOTS):
     sc.frame_set(f + 1)
     mz = rig.matrix_world @ local_muzzle
-    d = (rig.matrix_world.to_3x3() @ mathutils.Vector((0, 1, 0))).normalized()
+    d = ((eye + V((0, -3, -0.05)) * 1 + V((0, -3, -0.05)) * 9) - mz).normalized()   # to the crosshair, 30 m out
     if i == 0: print("TRACERDIR", tuple(round(c, 3) for c in d), "muzzle", tuple(round(c, 3) for c in mz), "gunrot", tuple(round(c, 3) for c in rig.rotation_euler))
     bpy.ops.mesh.primitive_cylinder_add(radius=0.005, depth=0.9, vertices=8, location=mz)
     t = bpy.context.active_object; t.data.materials.append(tracer_mat)
@@ -324,11 +326,12 @@ bp = bpy.context.active_object; m = bpy.data.materials.new("Base"); m.use_nodes 
 ck = m.node_tree.nodes.new("ShaderNodeTexChecker"); ck.inputs["Scale"].default_value = 40
 ck.inputs["Color1"].default_value = (0.32, 0.32, 0.33, 1); ck.inputs["Color2"].default_value = (0.27, 0.27, 0.28, 1)
 m.node_tree.links.new(ck.outputs["Color"], m.node_tree.nodes["Principled BSDF"].inputs["Base Color"]); bp.data.materials.append(m)
-bpy.ops.object.camera_add(location=eye); cam = bpy.context.active_object; cam.data.lens = 26; cam.data.clip_start = 0.02
-aim = bpy.data.objects.new("Aim", None); sc.collection.objects.link(aim); aim.location = eye + V((0, -3, -0.05))
+THIRD = bool(os.environ.get("THIRD"))
+bpy.ops.object.camera_add(location=eye + V((-3.6, -0.5, -0.65)) if THIRD else eye); cam = bpy.context.active_object; cam.data.lens = 35 if THIRD else 26; cam.data.clip_start = 0.02
+aim = bpy.data.objects.new("Aim", None); sc.collection.objects.link(aim); aim.location = eye + V((0, -0.35, -0.72)) if THIRD else eye + V((0, -3, -0.05))
 cam.constraints.new("TRACK_TO").target = aim; sc.camera = cam
 home_aim = aim.location.copy(); aim.keyframe_insert("location", frame=START)
-for f in SHOTS:
+for f in ([] if THIRD else SHOTS):
     aim.location = home_aim + V((rng.uniform(-0.02, 0.02), 0, rng.uniform(0.005, 0.025))); aim.keyframe_insert("location", frame=f + 1)
     aim.location = home_aim; aim.keyframe_insert("location", frame=f + 3)
 sc.render.engine = "BLENDER_EEVEE_NEXT"; sc.eevee.taa_render_samples = 16

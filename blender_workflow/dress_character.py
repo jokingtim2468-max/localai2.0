@@ -102,7 +102,7 @@ def add_balaclava():
     kn = knit.node_tree.nodes.new("ShaderNodeTexNoise"); kn.inputs["Scale"].default_value = 1500
     kbu = knit.node_tree.nodes.new("ShaderNodeBump"); kbu.inputs["Strength"].default_value = 0.05
     knit.node_tree.links.new(kn.outputs["Fac"], kbu.inputs["Height"]); knit.node_tree.links.new(kbu.outputs["Normal"], kb.inputs["Normal"])
-    pad = mathutils.Vector((1.14, 1.12, 1.06))          # a knitted layer sits a little off the skin
+    pad = mathutils.Vector(tuple(float(x) for x in os.environ.get("PAD", "1.1,1.08,1.04").split(",")))          # a knitted layer sits a little off the skin
     scale = mathutils.Vector([(hh[i] - hl[i]) * pad[i] / (bh[i] - bl[i]) for i in range(3)])
     hc, bc = (hl + hh) / 2, (bl + bh) / 2
     hc.z += (hh.z - hl.z) * 0.02
@@ -116,6 +116,16 @@ def add_balaclava():
             if b:
                 for l in list(b.inputs["Alpha"].links): m.node_tree.links.remove(l)
                 b.inputs["Alpha"].default_value = 1.0
+    # keep the sides and back inside the hood: taper the width from the face (full) to the back (narrower)
+    side_k = float(os.environ.get("SIDE_TAPER", "0.16"))
+    bpy.context.view_layer.update()
+    for o in parts:
+        mw = o.matrix_world; mi = mw.inverted()
+        P = [mw @ v.co for v in o.data.vertices]
+        fy, by = min(p.y for p in P), max(p.y for p in P)
+        for v, p in zip(o.data.vertices, P):
+            t = min(1.0, max(0.0, (p.y - fy - 0.06) / ((by - fy) * 0.4)))
+            v.co = mi @ mathutils.Vector((hc.x + (p.x - hc.x) * (1 - side_k * t), p.y - (p.y - hc.y) * side_k * 0.5 * t if p.y > hc.y else p.y, p.z))
     # eye opening: only from just under the brows to just over the nose bridge
     up_f, down_f = float(os.environ.get("HOLE_UP", "0.2")), float(os.environ.get("HOLE_DOWN", "0.06"))
     for o in parts:
@@ -137,7 +147,14 @@ def add_balaclava():
             t = min(1.0, max(0.0, (p.z - lo_z) / H))                 # smooth blend: bottom lifts, top drops, sides in between
             dz = (H * up_f * (1 - t) - H * down_f * t) * fall
             v.co = mi @ (p + mathutils.Vector((0, 0, dz)))
+        xs = [wpos[r.index].x for r in rim]
         bm.to_mesh(o.data); bm.free()
+        band = (lo_z + H * up_f - 0.012, hi_z - H * down_f + 0.012, front_y, min(xs) + 0.006, max(xs) - 0.006)
+    # skin under the mask can never be seen: drop it so the cheeks can't poke through the knit
+    fo = obj["ted_facemap"]; bm = bmesh.new(); bm.from_mesh(fo.data); fmw = fo.matrix_world
+    kill = [v for v in bm.verts if not (band[0] < (fmw @ v.co).z < band[1] and (fmw @ v.co).y < band[2] + 0.06 and band[3] < (fmw @ v.co).x < band[4])]
+    bmesh.ops.delete(bm, geom=kill, context="VERTS"); bm.to_mesh(fo.data); bm.free()
+    print("FACE kept band", [round(x, 3) for x in band])
     arm = next((o for o in sc.objects if o.type == "ARMATURE"), None)
     bone = next((b.name for b in arm.data.bones if "head" in b.name.lower()), None) if arm else None
     for o in parts:
@@ -153,6 +170,13 @@ add_bandana() if MASK == "bandana" else add_balaclava()
 hood = obj["ancestor"].data.materials[0]; hb = bsdf(hood)
 for l in list(hb.inputs["Base Color"].links): hood.node_tree.links.remove(l)
 hb.inputs["Base Color"].default_value = (0.62, 0.63, 0.64, 1); hb.inputs["Specular IOR Level"].default_value = 0.2
+
+# black sweatpants: printed swoosh dropped, matte cotton fleece
+pm = obj["pants_6"].data.materials[0]; pb = bsdf(pm)
+for l in list(pb.inputs["Base Color"].links): pm.node_tree.links.remove(l)
+pb.inputs["Base Color"].default_value = (0.012, 0.012, 0.013, 1); pb.inputs["Roughness"].default_value = 0.95
+pb.inputs["Sheen Weight"].default_value = 0.15; pb.inputs["Sheen Tint"].default_value = (0.35, 0.35, 0.37, 1)
+pb.inputs["Specular IOR Level"].default_value = 0.15
 
 # shoes: plain black leather (the original texture had a brand swoosh)
 sh = bpy.data.materials.new("Leather"); sh.use_nodes = True; shb = sh.node_tree.nodes["Principled BSDF"]
