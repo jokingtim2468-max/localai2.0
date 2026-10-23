@@ -26,3 +26,6 @@ Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
 - Scale: character 6 ft (1.829 m). Pistol = Glock 17 length 0.202 m (GUN_LEN env; model was 0.128!). MK18: 10.3in barrel, OAL ~26.75in collapsed (0.68 m).
 - Recoil v2: per-shot random kick <=0.1 ft (3.05 cm) x/up only, returns to centre; tracers aim at crosshair 30 m out. THIRD=1 FULLBODY=1 = side camera.
 - TODO queue (user): pistol inspect anim; MK18 shooting (base pose+hands, then mechanics, NO spare mag shown); research real shooting/walk/run reference (YouTube/mocap) for animation.
+- Motion reference saved: game/reference/motion_reference.md (vidIQ MCP video_watch works for analysing YouTube).
+- STYLE: untrained hood shooters, not pro/military (see motion_reference.md).
+- Rifle hold v1: blender_workflow/rifle_hold.py, env RHT=-0.15,-0.35,-0.35 LHT=2.25,0.4,0.3 LF=-0.6,-0.3,0.7 GUNPOS=-0.15,-0.1,-0.33 (THIRD=1 FULLBODY=1 for side). GRIP model (-1.75,0,-0.85), scale to 0.68 m, spare mag/rounds dropped.
