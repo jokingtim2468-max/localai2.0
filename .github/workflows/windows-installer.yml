@@ -20,8 +20,7 @@ jobs:
       - name: Tests
         run: python -m pytest -q tests
       - name: Stamp build
-        shell: pwsh
-        run: Set-Content -NoNewline version.txt $env:GITHUB_SHA
+        run: python -c "import os; open('version.txt', 'w').write(os.environ['GITHUB_SHA']); print(os.path.abspath('version.txt'))"
       - name: Build Eclipse.exe (one folder, no console)
         run: >
           pyinstaller --noconfirm --windowed --name Eclipse --icon assets/icon.ico
@@ -34,8 +33,8 @@ jobs:
       - name: Smoke test the exe's core
         shell: pwsh
         run: |
-          $p = Start-Process dist\Eclipse\Eclipse.exe -PassThru
           $env:ECLIPSE_NO_UPDATE = "1"
+          $p = Start-Process dist\Eclipse\Eclipse.exe -PassThru
           Start-Sleep 12
           if ($p.HasExited) { throw "Eclipse.exe exited early with code $($p.ExitCode)" }
           Stop-Process -Id $p.Id -Force
