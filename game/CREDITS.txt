@@ -9,3 +9,4 @@ Pistol: "Glock 9mm Flamengo" by Japonês - https://sketchfab.com/3d-models/glock
 Sounds: "Shot Beretta M12 9mm" (#0437) and "Rifle shot 1" (#2853) by Joseph SARDIN, BigSoundBank.com, CC0.
 Map textures/props: Poly Haven (polyhaven.com), CC0.
 Rifle: 'Low-poly DD MK18' by notcplkerry / D_U, CC-BY-4.0 (flat colours, no logos). In-game name must not use the real maker's brand.
+Rifle: Draco-style AK pistol cut from 'M762 Assault Rifle' by STALKER, CC-BY-4.0 (modified: stock removed, shortened, new grip).

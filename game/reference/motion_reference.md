@@ -29,3 +29,12 @@ Use the real data above only for the physics (slide, brass, flash). Body/handlin
 - Rifle: support hand near magwell or mid-handguard (not C-clamp), stock low on shoulder/bicep, head upright (no cheek weld), firing elbow winged out.
 - Recoil: still capped at 0.1 ft (3.05 cm) per shot (user rule), but slower, sloppier recovery with random wander between shots;
   trigger finger may rest inside the guard. No tactical reloads, no textbook ready positions.
+
+## Draco (AK pistol) — youtube.com/watch?v=x_tIGjHMoN0
+- Eye level, right arm near straight (165–170°), left hand cups under handguard, elbow 140–150° flared down.
+- Recoil: 8–12° muzzle up + slight right per shot, gun punches back 5–7 cm, recovery 0.15–0.25 s.
+- Flash: round star-burst fireball 10–20 cm. Brass: up/forward/right (1–2 o'clock).
+## Mini AR pistol — youtube.com/watch?v=O16l9V3Wpq4
+- Chest/chin level, not shouldered; right elbow 90–110° tucked, left arm forward 130–150°.
+- Recoil: sharp 15–25° flip, up-right drift, fast snap down. Big orange fireball (short barrel). Brass 3–4 o'clock.
+- GAME: still cap kick at 0.1 ft per user rule; untrained = sloppier return.

@@ -29,3 +29,4 @@ Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
 - Motion reference saved: game/reference/motion_reference.md (vidIQ MCP video_watch works for analysing YouTube).
 - STYLE: untrained hood shooters, not pro/military (see motion_reference.md).
 - Rifle hold v1: blender_workflow/rifle_hold.py, env RHT=-0.15,-0.35,-0.35 LHT=2.25,0.4,0.3 LF=-0.6,-0.3,0.7 GUNPOS=-0.15,-0.1,-0.33 (THIRD=1 FULLBODY=1 for side). GRIP model (-1.75,0,-0.85), scale to 0.68 m, spare mag/rounds dropped.
+- WEAPON SWAP: MK18 dropped -> Draco-style AK pistol (blender_workflow/make_draco.py from M762: stock cut, handguard shortened, new grip; 0.456 m). Hold: draco_hold.py env GUNPOS=-0.06,-0.3,-0.38 LHT=0.1,-0.1,0.04 LF=-0.9,-0.15,-0.2 (left hand cups under grip). Mini ARP = option from MK18 (cut stock/short barrel) later.
