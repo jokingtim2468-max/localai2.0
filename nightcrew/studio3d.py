@@ -75,6 +75,59 @@ def agent_prompt(rel: str, part: str, text: str, info: dict | None = None) -> st
     extra = f"\nPart details from the viewer: {json.dumps(info)}" if info else ""
     return (f"3D model edit request.\nModel file: {p}\nPart (object/mesh name): {part}{extra}\n"
             f"Request: {text}\n\n"
+            f"Blender: {find_blender() or 'blender'}\n"
             "Edit the model with a headless Blender Python script (blender --background --factory-startup "
             "--python-exit-code 1 --python <abs script> -- <args>): import the .glb, change only that part as asked, "
             "and export back to the same path as GLB. Keep other parts unchanged. Report what you changed.")
+
+
+def find_blender() -> str:
+    """Blender executable: settings.blender_path, then PATH, then the usual install folders."""
+    import os
+    import shutil
+    import sys
+    from . import settings
+    p = settings.load().get("blender_path") or ""
+    if p and Path(p).exists():
+        return p
+    w = shutil.which("blender")
+    if w:
+        return w
+    cands = []
+    if sys.platform == "win32":
+        for base in (os.environ.get("ProgramFiles", r"C:\Program Files"), os.environ.get("ProgramFiles(x86)", "")):
+            if base:
+                cands += sorted(Path(base, "Blender Foundation").glob("Blender*/blender.exe"), reverse=True)
+    elif sys.platform == "darwin":
+        cands.append(Path("/Applications/Blender.app/Contents/MacOS/Blender"))
+    else:
+        cands += sorted(Path("/opt").glob("blender*/blender"), reverse=True)
+    for c in cands:
+        if Path(c).exists():
+            return str(c)
+    return ""
+
+
+def create_prompt(name: str, desc: str) -> dict:
+    """What the agent is told to build a brand-new model from a description."""
+    from . import paths
+    safe = "".join(ch for ch in (name or "model").strip() if ch.isalnum() or ch in "-_ ").strip().replace(" ", "_") or "model"
+    root = sandbox.workspace()
+    rel = f"models/{safe}.glb"
+    out = root / rel
+    wf = paths.HERE.parent / "blender_workflow"
+    blender = find_blender() or "blender"
+    prompt = (
+        f"Make a new game-ready 3D model.\nDescription: {desc}\n\n"
+        f"Blender: {blender}\nWrite the script to {root / 'models' / (safe + '_build.py')} and run it with:\n"
+        f'"{blender}" --background --factory-startup --python-exit-code 1 --python <that script>\n'
+        f"The script must export the model as GLB to: {out}\n"
+        "Follow the blender-game-assets skill (load_skill it first): script layout imports -> cleanup_scene() -> generate_*() "
+        "-> materials -> call at the bottom; real-world size in metres; separate materials; origin at the bottom centre for "
+        "props or on the pivot for moving parts; bevels for hard edges; no real brands or logos.\n"
+        f"Then render a preview: \"{blender}\" --background --factory-startup --python {wf / 'preview_model.py'} -- {out} "
+        f"{root / 'models' / (safe + '_preview.png')}\n"
+        "If a run prints Traceback or exits non-zero, read the error, fix the script and run again. "
+        "Finish by saying what you built, its size, and the file path."
+    )
+    return {"path": rel, "prompt": prompt, "blender": blender}

@@ -21,3 +21,15 @@ def test_studio3d_roundtrip(tmp_path, monkeypatch):
     assert d["comments"][-1]["part"] == "Slide"
     p = c.post("/api/model3d/prompt", json={"path": "m/a.glb", "part": "Slide", "text": "make it longer"}, headers=H).get_json()["prompt"]
     assert "Slide" in p and "make it longer" in p and str(tmp_path) in p
+
+
+def test_create_prompt_and_blender_path(tmp_path, monkeypatch):
+    from nightcrew import studio3d
+    fake = tmp_path / "blender"; fake.write_text("")
+    monkeypatch.setattr(settings, "load", lambda: {**settings.DEFAULTS, "workdir": str(tmp_path), "blender_path": str(fake)})
+    assert studio3d.find_blender() == str(fake)
+    c = server.app.test_client()
+    r = c.post("/api/model3d/create", json={"name": "trash can!", "desc": "dented metal trash can"}, headers={"X-NC": "1"}).get_json()
+    assert r["path"] == "models/trash_can.glb" and r["blender"] == str(fake)
+    assert str(tmp_path / "models" / "trash_can.glb") in r["prompt"] and "preview_model.py" in r["prompt"]
+    assert "load_skill" in r["prompt"]

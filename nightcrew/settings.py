@@ -17,6 +17,7 @@ DEFAULTS = {
     "trust_workspace": True,      # file edits inside the workspace need no approval
     "workdir": "",                # blank = data/workspace
     "web": False,                 # web tools off unless switched on
+    "blender_path": "",           # blank = auto-detect (PATH, Program Files, /Applications)
 }
 _LOCK = threading.Lock()
 

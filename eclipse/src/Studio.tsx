@@ -156,7 +156,13 @@ export function Studio({ model }: { model: string }) {
     const o = find(m.uuid);
     const info = o ? { position: o.position.toArray().map(num), point: m.point } : { point: m.point };
     const { prompt } = await post("/api/model3d/prompt", { path: file, part: m.name, text: ask, info });
-    setBusy("model is working on " + m.name); setLog("");
+    await runAgent(prompt, "model is working on " + m.name);
+    load(file);                                         // pick up the edited model
+  };
+
+  // the chat agent (qwen-abliterated by default) does the Blender work; its output streams into the side panel
+  const runAgent = async (prompt: string, label: string) => {
+    setBusy(label); setLog("");
     let out = "";
     try {
       await stream("/api/chat", { model, messages: [{ role: "user", content: prompt }], tools: true, ask: true }, async (e) => {
@@ -170,7 +176,18 @@ export function Studio({ model }: { model: string }) {
       });
     } catch (x) { setLog(out + "\nerror: " + x); }
     setBusy("");
-    load(file);                                         // pick up the edited model
+  };
+
+  // ---------- make a brand-new model from a description ----------
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
+  const create = async () => {
+    if (!newDesc.trim()) return;
+    const r = await post("/api/model3d/create", { name: newName || newDesc.split(" ").slice(0, 3).join("_"), desc: newDesc });
+    if (r.error) { setLog(r.error); return; }
+    await runAgent(r.prompt, "model is building " + r.path);
+    await listFiles();
+    setFile(""); setTimeout(() => setFile(r.path), 0);
   };
 
   return (
@@ -183,6 +200,12 @@ export function Studio({ model }: { model: string }) {
         <button className="ghost" onClick={listFiles}>Refresh</button>
         <button className="ghost" onClick={() => load(file)} disabled={!file}>Reload</button>
         <button onClick={save} disabled={!file || !dirty}>Save</button>
+        <input className="field" style={{ width: 120 }} placeholder="name" value={newName} onChange={(e) => setNewName(e.target.value)} />
+        <input className="field" style={{ flex: 1, minWidth: 200 }} placeholder="Describe a new model, e.g. a dented metal trash can, 0.9 m tall" value={newDesc}
+          onChange={(e) => setNewDesc(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") create(); }} />
+        <button onClick={create} disabled={!newDesc.trim() || !!busy}>Make model</button>
+      </div>
+      <div className="b-bar">
         <span className="muted small">Click a part to edit · drag a part to move it · drag empty space to orbit · right-click a part to tell the model</span>
       </div>
       <div className="s-body">

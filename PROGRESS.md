@@ -35,3 +35,4 @@ Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
 - Hands v2: joint balls (knuckles), fingertip caps, exact glove-vertex collision (no phasing). Side video done (game/renders/pistol_side*).
 - Draco clip: blender_workflow/fire_draco.py env GUNPOS=-0.06,-0.3,-0.33 LHT=0.1,-0.1,0.04 LF=-0.9,-0.15,-0.2 CAMAIM=0,-3,-0.5 -> dfin/frames (190f, 20 rds every 6f from 24). Sound: sfx/2853 per shot at (24+6k-1)/60 s. World-aligned Kick pivot drives recoil.
 - Character hands now use hands_fix.py contact grip (Draco). Draco render v2 running -> fps/dfin2 (env GUNPOS=-0.03,-0.3,-0.36 LHT=0.09,-0.085,0.05 LF=-0.9,-0.2,0.1 CAMAIM=0,-3,-0.5).
+- APP: 'Make model' in 3D models tab -> /api/model3d/create builds agent prompt (bpy expert layout, real sizes, preview render, auto-fix loop); Blender auto-detect + settings.blender_path; skill blender-game-assets updated with bpy rules + hand lessons.

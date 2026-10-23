@@ -292,6 +292,8 @@ def api_m3d_action(action):
             return jsonify({"comments": studio3d.add_comment(b.get("path", ""), b.get("part", ""), b.get("text", ""), b.get("point"))})
         if action == "comments":
             return jsonify({"comments": studio3d.comments(b.get("path", ""))})
+        if action == "create":
+            return jsonify(studio3d.create_prompt(b.get("name", ""), b.get("desc", "")))
         if action == "prompt":
             return jsonify({"prompt": studio3d.agent_prompt(b.get("path", ""), b.get("part", ""), b.get("text", ""), b.get("info"))})
     except (sandbox.ToolError, ValueError) as e:
