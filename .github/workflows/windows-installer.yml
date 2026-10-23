@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     branches: [claude/amazing-keller-dvibe7]
-    paths: ["nightcrew/**", "eclipse/dist/**", "static/**", "desktop.py", "requirements.txt", "packaging/**", "assets/**", "blender_workflow/**", ".github/workflows/windows-installer.yml"]
+    paths: ["updater.py", "install.ps1", "nightcrew/**", "eclipse/dist/**", "static/**", "desktop.py", "requirements.txt", "packaging/**", "assets/**", "blender_workflow/**", ".github/workflows/windows-installer.yml"]
 permissions:
   contents: write
 jobs:
@@ -19,18 +19,23 @@ jobs:
           python -m pip install -r requirements.txt pyinstaller==6.11.1
       - name: Tests
         run: python -m pytest -q tests
+      - name: Stamp build
+        shell: pwsh
+        run: Set-Content -NoNewline version.txt $env:GITHUB_SHA
       - name: Build Eclipse.exe (one folder, no console)
         run: >
           pyinstaller --noconfirm --windowed --name Eclipse --icon assets/icon.ico
           --add-data "nightcrew/skills;nightcrew/skills" --add-data "static;static"
           --add-data "eclipse/dist;eclipse/dist" --add-data "blender_workflow;blender_workflow"
-          --add-data "assets;assets" --add-data "scripts;scripts"
+          --add-data "assets;assets" --add-data "scripts;scripts" --add-data "version.txt;."
+          --hidden-import updater
           --collect-submodules nightcrew --collect-all webview --collect-all trafilatura
           desktop.py
       - name: Smoke test the exe's core
         shell: pwsh
         run: |
           $p = Start-Process dist\Eclipse\Eclipse.exe -PassThru
+          $env:ECLIPSE_NO_UPDATE = "1"
           Start-Sleep 12
           if ($p.HasExited) { throw "Eclipse.exe exited early with code $($p.ExitCode)" }
           Stop-Process -Id $p.Id -Force
@@ -39,11 +44,10 @@ jobs:
         shell: pwsh
       - uses: actions/upload-artifact@v4
         with: { name: EclipseSetup, path: dist-installer/EclipseSetup.exe }
-      - name: Publish as the "eclipse-latest" release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: eclipse-latest
-          name: Eclipse (latest build)
-          prerelease: true
-          target_commitish: ${{ github.sha }}
-          files: dist-installer/EclipseSetup.exe
+      - name: Publish as the "eclipse-latest" release (replaces the previous build)
+        shell: pwsh
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh release delete eclipse-latest --yes --cleanup-tag 2>$null
+          gh release create eclipse-latest dist-installer/EclipseSetup.exe install.ps1 --prerelease --target $env:GITHUB_SHA `
+            --title "Eclipse (latest build)" --notes "Latest Windows build. build: $env:GITHUB_SHA"

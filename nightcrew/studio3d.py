@@ -22,7 +22,7 @@ def list_models() -> list[dict]:
     out = []
     for p in sorted(root.rglob("*")):
         if p.suffix.lower() in EXTS and p.is_file() and "node_modules" not in p.parts:
-            out.append({"path": str(p.relative_to(root)), "size": p.stat().st_size})
+            out.append({"path": p.relative_to(root).as_posix(), "size": p.stat().st_size})
             if len(out) >= MAX_FILES:
                 break
     return out

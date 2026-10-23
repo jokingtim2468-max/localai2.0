@@ -56,6 +56,12 @@ def start_core(port: int) -> None:
 
 
 def main() -> int:
+    try:                                            # installed app: update itself first (quick, never fatal)
+        import updater
+        if updater.check_and_update():
+            return 0
+    except Exception:
+        pass
     lock = single_instance()
     if lock is None:
         print("Eclipse is already running.")
