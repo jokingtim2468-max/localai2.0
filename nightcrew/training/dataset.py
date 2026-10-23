@@ -250,3 +250,165 @@ def from_skills() -> list[dict]:
             out.append({"messages": [{"role": "user", "content": f"{topic}: {para.split('.')[0].lstrip('- ')[:90]}?"},
                                      {"role": "assistant", "content": para.lstrip("- ")}], "source": "skills"})
     return out
+
+
+TEXTS = [
+    "The player can double jump once they collect the feather. Falling below the map resets them to the last checkpoint.",
+    "Install the dependencies first, then run the build script. The output goes into the dist folder.",
+    "Our save files are written every five minutes and when the player quits. Each save keeps a backup of the previous one.",
+    "The inventory holds twenty items. Stackable items stack up to ninety nine. Quest items cannot be dropped.",
+    "Press escape to open the pause menu. From there you can change the volume, the controls and the graphics quality.",
+    "The server checks every purchase before it is applied, so a modified client cannot give itself free coins.",
+    "Textures should be powers of two. Use compressed formats for anything larger than one thousand pixels.",
+    "The enemy patrols between two points and chases the player when it sees them within ten meters.",
+]
+
+
+def spelling(n: int = 120, seed: int = 21) -> list[dict]:
+    """Fix spelling in a file: read it, write the corrected text, say what changed."""
+    r, out = random.Random(seed), []
+    for _ in range(n):
+        clean_text = " ".join(r.sample(TEXTS, r.randint(1, 3)))
+        bad = typo(clean_text, r, 0.06)
+        if bad == clean_text:
+            continue
+        f = r.choice(["notes.md", "README.md", "docs/design.md", "story.txt"])
+        out.append({"messages": [{"role": "user", "content": r.choice([f"fix the spelling in {f}", f"spellcheck {f}", f"{f} has typos, clean it up"])},
+                                 _call("read_file", path=f), _tool("read_file", bad),
+                                 _call("write_file", path=f, content=clean_text), _tool("write_file", f"OK: wrote {f} ({len(clean_text)} chars)"),
+                                 {"role": "assistant", "content": f"Fixed the spelling in {f}. The wording and meaning are unchanged."}],
+                    "source": "spelling"})
+    return out
+
+
+QUESTIONS = ["how does double jump work", "where does the build output go", "how often does the game save",
+             "how many items fit in the inventory", "what is in the pause menu", "how are purchases protected",
+             "what size should textures be", "how does the enemy behave"]
+
+
+def reading(n: int = 120, seed: int = 23) -> list[dict]:
+    """Answer from the file, quoting it, instead of guessing."""
+    r, out = random.Random(seed), []
+    for _ in range(n):
+        idx = r.sample(range(len(TEXTS)), 4)
+        doc = "\n\n".join(TEXTS[i] for i in idx)
+        k = r.choice(idx)
+        f = r.choice(["docs/design.md", "README.md", "notes.md"])
+        out.append({"messages": [{"role": "user", "content": r.choice([f"{QUESTIONS[k]}? check {f}", f"read {f}: {QUESTIONS[k]}?", f"{QUESTIONS[k]}, according to {f}?"])},
+                                 _call("read_file", path=f), _tool("read_file", doc),
+                                 {"role": "assistant", "content": f"{f} says: \"{TEXTS[k]}\""}], "source": "reading"})
+    return out
+
+
+WEB_TOPICS = ["godot 4 characterbody2d move_and_slide", "blender python keyframe_insert", "ffmpeg trim video without re-encoding",
+              "cmake add_executable example", "unreal engine 5 enhanced input", "python pathlib glob", "typescript generics",
+              "fabric minecraft mod getting started", "qt6 qmainwindow menu bar", "three.js animation loop", "sqlite python insert",
+              "c++ std::unique_ptr", "dotnet new console", "rust bevy ecs system", "pyqt6 signals and slots", "ollama api chat"]
+
+
+def _sentences(text: str, words: list[str], k: int = 2) -> str:
+    lines = [l for l in text.splitlines() if l.strip() and not l.lstrip().startswith(("#", "http", "|", "-", "*", "!", "```"))]
+    body = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", " ".join(lines))          # [text](url) -> text
+    body = re.sub(r"[*_`]+", "", body)
+    sents = [s.strip() for s in re.split(r"(?<=[.!?])\s+", re.sub(r"\s+", " ", body)) if 40 < len(s.strip()) < 400]
+    hits = [s for s in sents if sum(w in s.lower() for w in words) >= 2] or sents
+    return " ".join(hits[:k])
+
+
+def web(n: int = 40, seed: int = 31, log=print) -> list[dict]:
+    """search -> fetch -> answer from the page with the link; and scrape -> save a file.
+    Every example is a REAL search and fetch done now; failures are skipped."""
+    from .. import web as W
+    r, out = random.Random(seed), []
+    topics = r.sample(WEB_TOPICS, len(WEB_TOPICS))
+    for q in topics:
+        if len(out) >= n:
+            break
+        try:
+            res = W.web_search(q, 3)
+            url = re.search(r"https?://\S+", res).group(0)
+            page = W.web_fetch(url)
+        except Exception as e:  # noqa: BLE001
+            log(f"web: skipped '{q}': {e}")
+            continue
+        answer = _sentences(page, q.lower().split())
+        if len(answer) < 60:
+            continue
+        out.append({"messages": [{"role": "user", "content": r.choice([f"look up {q}", f"search the web: {q}", f"how do I do this: {q}? check online"])},
+                                 _call("web_search", query=q), _tool("web_search", res),
+                                 _call("web_fetch", url=url), _tool("web_fetch", page[:4000]),
+                                 {"role": "assistant", "content": f"{answer}\n\nSource: {url}"}], "source": "web"})
+        links = re.findall(r"\[([^\]]{3,80})\]\((https?://[^)\s]+)\)", page)[:25]
+        if len(links) >= 3:
+            data = json.dumps([{"text": t, "url": u} for t, u in links], indent=1)
+            out.append({"messages": [{"role": "user", "content": f"scrape the links from {url} into links.json"},
+                                     _call("web_fetch", url=url), _tool("web_fetch", page[:4000]),
+                                     _call("write_file", path="links.json", content=data), _tool("write_file", f"OK: wrote links.json ({len(data)} chars)"),
+                                     {"role": "assistant", "content": f"Saved {len(links)} links from {url} to links.json (text + url for each)."}],
+                        "source": "scrape"})
+        log(f"web: {len(out)} examples")
+    return out
+
+
+# Public C++ data, loaded by the trainer (needs the `datasets` package in the training env):
+CPP_SOURCES = [
+    {"hf": "ise-uiuc/Magicoder-OSS-Instruct-75K", "licence": "MIT", "filter": {"lang": ["cpp", "c++"]}, "q": "problem", "a": "solution"},
+    {"hf": "m-a-p/CodeFeedback-Filtered-Instruction", "licence": "Apache-2.0", "filter": {"lang": ["cpp", "c++"]}, "q": "query", "a": "answer"},
+]
+
+DEFAULTS = {"traces": True, "fixes": True, "drills": True, "honesty": True, "typos": True, "memory": True,
+            "spelling": True, "reading": True, "web": True, "media": True, "cpp": True,
+            "skills": False, "code": False, "code_folders": [], "cpp_max": 6000, "media_n": 300, "web_n": 40}
+
+
+def out_dir() -> Path:
+    d = paths.data("training")
+    d.mkdir(exist_ok=True)
+    return d
+
+
+def build(opts: dict | None = None, log=print) -> dict:
+    o = {**DEFAULTS, **(opts or {})}
+    parts: list[dict] = []
+    if o["traces"] or o["fixes"]:
+        good, fixes = from_traces()
+        parts += (good if o["traces"] else []) + (fixes if o["fixes"] else [])
+        log(f"your chats: {len(good)} good turns, {len(fixes)} fixed builds")
+    for name, fn in (("drills", drills), ("honesty", honesty), ("spelling", spelling), ("reading", reading), ("memory", from_memory)):
+        if o[name]:
+            parts += fn()
+    if o["skills"]:
+        parts += from_skills()
+    if o["code"] and o["code_folders"]:
+        parts += from_code(o["code_folders"])
+    if o["web"]:
+        parts += web(o["web_n"], log=log)
+    if o["media"]:
+        from . import media
+        parts += media.examples(o["media_n"], log=log)
+    if o["typos"]:
+        parts += with_typos([p for p in parts if p["source"] in ("traces", "fixes", "drills", "web", "media", "reading")])
+    seen, uniq = set(), []
+    for p in parts:                                   # identical examples only overfit
+        k = json.dumps(p["messages"], sort_keys=True)
+        if k not in seen:
+            seen.add(k)
+            uniq.append(p)
+    kept = [p for p in uniq if clean(p)]
+    dropped = len(parts) - len(kept)
+    r = random.Random(1)
+    r.shuffle(kept)
+    n_eval = max(1, len(kept) // 10) if len(kept) > 10 else 0
+    d = out_dir()
+    for fname, rows in (("eval.jsonl", kept[:n_eval]), ("train.jsonl", kept[n_eval:])):
+        with open(d / fname, "w", encoding="utf-8") as f:
+            for row in rows:
+                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    counts: dict[str, int] = {}
+    for p in kept:
+        counts[p["source"]] = counts.get(p["source"], 0) + 1
+    manifest = {"counts": counts, "total": len(kept), "eval": n_eval, "dropped_secrets": dropped,
+                "cpp": CPP_SOURCES if o["cpp"] else [], "cpp_max": o["cpp_max"], "dir": str(d)}
+    (d / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
+    log(f"dataset: {len(kept)} examples ({n_eval} held out), {dropped} dropped for secrets, + up to {o['cpp_max']} C++" if o["cpp"] else f"dataset: {len(kept)} examples")
+    return manifest

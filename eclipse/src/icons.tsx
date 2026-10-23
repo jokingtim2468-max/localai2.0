@@ -4,6 +4,7 @@ const P: Record<string, string> = {
   projects: "M3 6h5l2 2h7v8H3z",
   models: "M10 3l6 3.5v7L10 17l-6-3.5v-7zM4 6.5l6 3.5 6-3.5M10 10v7",
   recommend: "M10 3l2.2 4.5 4.8.7-3.5 3.4.8 4.9-4.3-2.3-4.3 2.3.8-4.9L3 8.2l4.8-.7z",
+  train: "M3 16l4-5 3 3 4-6 3 4M3 4v12h14",
   game: "M5 8h10a3 3 0 0 1 0 6l-2-1H7l-2 1a3 3 0 0 1 0-6zM7 10v2M6 11h2M13 11h.01",
   gui: "M3 4h14v12H3zM3 7h14M7 7v9",
   shield: "M10 3l6 2v5c0 4-3 6-6 7-3-1-6-3-6-7V5z",

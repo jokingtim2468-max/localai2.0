@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 
-from . import backends, context, escalation, memory, sandbox, settings, skills
+from . import backends, context, escalation, memory, sandbox, settings, skills, web
 
 SYSTEM_PROMPT = """You are the lead developer agent in a local workbench. You build apps,
 games, GUIs and tools in the user's workspace folder using your tools.
@@ -22,6 +22,7 @@ Rules:
   conversation returned success. If something failed, say so plainly.
 - Know your limits: you can only touch the workspace; you cannot see the screen; check
   that a tool or program exists before relying on it.
+- With web tools: web_search, then web_fetch the best result and answer from what the page says, citing the link. Never invent page contents.
 - When a fix fails twice, call escalate_debug (buddy first, then parent, swarm, mr_debug).
 - Use remember for durable facts (preferences, project decisions) as 'key: value'.
 - Finish the whole request before answering. Answers are short and concrete."""
@@ -44,7 +45,8 @@ def system_prompt(task: str) -> str:
 
 
 def tool_schemas() -> list:
-    return list(sandbox.SCHEMAS) + [memory.SCHEMA, skills.SCHEMA, escalation.SCHEMA]
+    extra = web.SCHEMAS if settings.load().get("web") else []
+    return list(sandbox.SCHEMAS) + [memory.SCHEMA, skills.SCHEMA, escalation.SCHEMA] + extra
 
 
 def needs_approval(name: str, ask: bool) -> bool:
@@ -58,6 +60,13 @@ def call_tool(name: str, args: dict) -> str:
         return memory.remember(args.get("note", ""))
     if name == "escalate_debug":
         return escalation.escalate(args.get("problem", ""), args.get("tier", "buddy"), args.get("tried", ""))
+    if name in web.REGISTRY:
+        if not settings.load().get("web"):
+            return "error: web access is switched off (Settings -> Web)"
+        try:
+            return web.REGISTRY[name](**args)
+        except Exception as e:  # noqa: BLE001
+            return f"error: {name} failed: {e}"
     if name == "load_skill":
         return skills.load_skill(args.get("name", ""))
     return sandbox.run_tool(name, args)

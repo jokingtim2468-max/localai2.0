@@ -8,10 +8,11 @@ import { Cmd, Palette } from "./Palette";
 import { Planned } from "./Planned";
 import { Recommend } from "./Recommend";
 import { Settings } from "./Settings";
+import { Training } from "./Training";
 import { SetupBar } from "./SetupBar";
 
 const SCREENS: [string, string][] = [
-  ["chat", "Chat"], ["projects", "Projects"], ["models", "Models"], ["recommend", "Recommended models"], ["game", "Game kit"],
+  ["chat", "Chat"], ["projects", "Projects"], ["models", "Models"], ["recommend", "Recommended models"], ["train", "Training"], ["game", "Game kit"],
   ["gui", "GUI builder"], ["shield", "Anti-tamper lab"], ["bench", "Analysis bench"],
   ["fork", "Open-source adapter"], ["assets", "Assets"],
 ];
@@ -81,6 +82,7 @@ export function App() {
       : id === "models" ? <Models model={model} setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "recommend" ? <Recommend setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "gui" ? <Builder />
+      : id === "train" ? <Training setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "settings" ? <Settings />
       : <Planned id={id} />;
 

@@ -41,3 +41,14 @@ Recreate files listed above per their docstrings; run tests; commit; push
 - Core serves eclipse/dist at / (committed so the PC needs no Node); old UI at /nightcrew.
 - make_shortcut.py: Windows Desktop + Start-menu .lnk (pythonw, icon.ico); macOS ~/Applications/Eclipse.app.
 - Rebuild UI after changes: `cd eclipse && npx vite build` and commit dist.
+
+## GUI builder + web + training
+- Builder tab (eclipse/src/Builder.tsx, nightcrew/builder.py): model drafts JSON elements; click/drag/resize,
+  double-click text, right-click -> ask model; palette; save as HTML in workspace/builder/.
+- nightcrew/web.py: web_search/web_fetch (Ollama API key in keychain -> ollama.com/api; else DuckDuckGo +
+  direct fetch). SSRF guard on every hop. Settings "web" switch.
+- Training: nightcrew/training/{dataset,media,auto,runner,evaluate}.py, scripts/train_unsloth.py,
+  scripts/train_mlx.py, scripts/install_training.{ps1,sh} (.venv-train). Agent records turns to
+  data/traces/*.jsonl. Media examples verified with real Blender 4.2 + ffmpeg (all pass).
+  Import: merged safetensors -> `ollama create qwen-abliterated-tuned -q q4_K_M` with qwen-abliterated's template.
+  NOT run end-to-end: needs the user's GPU.

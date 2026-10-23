@@ -19,6 +19,8 @@ That sets Ollama for 8 GB VRAM, installs Python packages, downloads `qwen-ablite
 and puts an **Eclipse** shortcut on the Desktop and in the Start menu. Double-click it:
 Eclipse opens in its own window (no browser).
 
+Training (optional, NVIDIA): `powershell -ExecutionPolicy Bypass -File scripts\\install_training.ps1`, then Eclipse -> Training.
+
 macOS: `python3 -m pip install -r requirements.txt && python3 make_shortcut.py` ->
 `~/Applications/Eclipse.app`.
 

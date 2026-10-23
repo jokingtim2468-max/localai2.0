@@ -198,6 +198,38 @@ def api_builder(action):
     return jsonify({"error": "unknown action"}), 404
 
 
+@app.route("/api/web/key", methods=["GET", "POST"])
+def api_web_key():
+    from . import web
+    if request.method == "POST":
+        if (g := guard()):
+            return g
+        ok = web.set_key((request.get_json(force=True) or {}).get("key", ""))
+        return jsonify({"ok": ok, "error": "" if ok else "no system keychain available (pip install keyring)"})
+    return jsonify({"set": bool(web._key())})        # never send the key itself back
+
+
+@app.get("/api/train")
+def api_train():
+    from .training import auto, dataset, runner
+    ok, why = runner.ready()
+    plan = auto.pick(1000)
+    return jsonify({**runner.STATE, "tools_ready": ok, "tools_why": why, "plan": plan,
+                    "defaults": dataset.DEFAULTS, "your_turns": len(dataset.load_traces())})
+
+
+@app.post("/api/train/<action>")
+def api_train_action(action):
+    if (g := guard()):
+        return g
+    from .training import runner
+    if action == "start":
+        return jsonify({"started": runner.start((request.get_json(force=True) or {}).get("opts", {}))})
+    if action == "stop":
+        return jsonify({"stopped": runner.stop()})
+    return jsonify({"error": "unknown action"}), 404
+
+
 @app.get("/api/setup")
 def api_setup():
     from . import model_setup

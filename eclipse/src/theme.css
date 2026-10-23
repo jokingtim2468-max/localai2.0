@@ -159,3 +159,4 @@ input[type=color]{width:100%;height:28px;background:none;border:1px solid var(--
 .b-menu-ask .field{flex:1}
 .b-menu>button{background:none;border:0;text-align:left;padding:7px 10px;border-radius:var(--r-sm);cursor:pointer}
 .b-menu>button:hover{background:var(--panel)}
+.trow{display:flex;gap:8px;align-items:flex-start;padding:4px 0}
