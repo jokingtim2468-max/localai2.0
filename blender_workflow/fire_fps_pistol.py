@@ -341,4 +341,4 @@ sc.render.image_settings.file_format = "PNG"
 if os.environ.get("ONE"):
     sc.frame_set(int(os.environ["ONE"])); sc.render.filepath = os.path.join(OUT, "probe.png"); bpy.ops.render.render(write_still=True)
 else:
-    sc.render.filepath = os.path.join(OUT, "frames", "f_"); bpy.ops.render.render(animation=True)
+    sc.frame_start = int(os.environ.get("FSTART", sc.frame_start)); sc.render.filepath = os.path.join(OUT, "frames", "f_"); bpy.ops.render.render(animation=True)

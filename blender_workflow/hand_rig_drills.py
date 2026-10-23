@@ -67,19 +67,27 @@ def build_mesh(segs):
     bmesh.ops.create_cube(bm, size=1.0)
     for v in bm.verts:
         v.co = V((v.co.x * 0.082, v.co.y * 0.095 + 0.045, v.co.z * 0.026))
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=2, use_grid_fill=True)
     for name, h, t, r in segs[1:]:
         d = (t - h)
         mat = d.to_track_quat("Z", "Y").to_matrix().to_4x4()
         mat.translation = (h + t) / 2
-        geo = bmesh.ops.create_cone(bm, cap_ends=True, segments=10, radius1=r, radius2=r * 0.95, depth=d.length + r * 0.9)
+        geo = bmesh.ops.create_cone(bm, cap_ends=False, segments=12, radius1=r, radius2=r * 0.92, depth=d.length)
         bmesh.ops.transform(bm, matrix=mat, verts=geo["verts"])
+        # joint ball at the pivot: rotates in place, so a bent joint never opens a gap (knuckles stay whole)
+        knuckle = name.endswith(".01.R") and not name.startswith("thumb")
+        ball = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=r * (1.18 if knuckle else 1.02))
+        bmesh.ops.translate(bm, vec=h, verts=ball["verts"])
+        if name.endswith(".03.R"):                                   # rounded fingertip
+            tipb = bmesh.ops.create_uvsphere(bm, u_segments=12, v_segments=8, radius=r * 0.92)
+            bmesh.ops.translate(bm, vec=t, verts=tipb["verts"])
     me = bpy.data.meshes.new("HandMesh")
     bm.to_mesh(me)
     bm.free()
     ob = bpy.data.objects.new("Hand", me)
     bpy.context.scene.collection.objects.link(ob)
     mod = ob.modifiers.new("bevel", "BEVEL")
-    mod.width, mod.segments = 0.004, 2
+    mod.width, mod.segments = 0.006, 3
     ob.data.materials.append(material("BlackGlove", (0.015, 0.015, 0.017), 0.7, 0.15))
     return ob
 
@@ -158,11 +166,26 @@ def bone_points(rig, name):
     return [h.lerp(t, k / 4) for k in range(5)]
 
 
+MARGIN = 0.0008                                                   # glove surface may touch, never pass through
+OWN = {}                                                          # bone -> glove vertex indices it mostly drives
+
+
+def own_vertices(ob):
+    for v in ob.data.vertices:
+        if v.groups:
+            g = max(v.groups, key=lambda g: g.weight)
+            OWN.setdefault(ob.vertex_groups[g.group].name, []).append(v.index)
+
+
 def touching(rig, names, bvh):
+    """True if any glove vertex driven by these bones is inside the object or closer than MARGIN."""
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = HAND.evaluated_get(dg); me = ev.data; mw = ev.matrix_world
     for n in names:
-        for p in bone_points(rig, n):
+        for i in OWN.get(n, ()):
+            p = mw @ me.vertices[i].co
             loc, nrm, _, d = bvh.find_nearest(p)
-            if loc is not None and ((p - loc).dot(nrm) < 0 or d < FLESH):
+            if loc is not None and ((p - loc).dot(nrm) < 0 or d < MARGIN):
                 return True
     return False
 
@@ -240,7 +263,10 @@ def shot(cams, tag):
 
 def run_drills():
     cleanup_scene()
+    global HAND
     rig, hand = generate_rigged_hand()
+    HAND = hand
+    own_vertices(hand)
     cams = setup_render()
     for i, a in enumerate((0.0, 0.35, 0.7, 1.0)):            # drill 1: open -> fist
         open_hand(rig)
