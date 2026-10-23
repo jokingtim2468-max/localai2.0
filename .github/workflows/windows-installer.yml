@@ -1,0 +1,49 @@
+name: Windows installer
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/amazing-keller-dvibe7]
+    paths: ["nightcrew/**", "eclipse/dist/**", "static/**", "desktop.py", "requirements.txt", "packaging/**", "assets/**", "blender_workflow/**", ".github/workflows/windows-installer.yml"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: Python deps + PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt pyinstaller==6.11.1
+      - name: Tests
+        run: python -m pytest -q tests
+      - name: Build Eclipse.exe (one folder, no console)
+        run: >
+          pyinstaller --noconfirm --windowed --name Eclipse --icon assets/icon.ico
+          --add-data "nightcrew/skills;nightcrew/skills" --add-data "static;static"
+          --add-data "eclipse/dist;eclipse/dist" --add-data "blender_workflow;blender_workflow"
+          --add-data "assets;assets" --add-data "scripts;scripts"
+          --collect-submodules nightcrew --collect-all webview --collect-all trafilatura
+          desktop.py
+      - name: Smoke test the exe's core
+        shell: pwsh
+        run: |
+          $p = Start-Process dist\Eclipse\Eclipse.exe -PassThru
+          Start-Sleep 12
+          if ($p.HasExited) { throw "Eclipse.exe exited early with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+      - name: Build installer (Inno Setup)
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\eclipse.iss'
+        shell: pwsh
+      - uses: actions/upload-artifact@v4
+        with: { name: EclipseSetup, path: dist-installer/EclipseSetup.exe }
+      - name: Publish as the "eclipse-latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: eclipse-latest
+          name: Eclipse (latest build)
+          prerelease: true
+          target_commitish: ${{ github.sha }}
+          files: dist-installer/EclipseSetup.exe

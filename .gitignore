@@ -7,3 +7,7 @@ target/
 test-results/
 .venv/
 .venv-train/
+dist-installer/
+build/
+dist/
+*.spec
