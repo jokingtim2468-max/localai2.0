@@ -21,3 +21,4 @@ Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
   Rebuild: MASK=balaclava BALACLAVA=<uploads>/8a168f46-balaclava.glb blender ... char.py -- <hood.glb> <bandana.glb unused> <out>
 - Rifle chosen: MK18 (game/assets/rifle_mk18.glb, flat colours, no logo textures). Next: animated fire with hands, rifle_burst sound.
 - Balaclava eye hole narrowed: HOLE_UP=0.2 HOLE_DOWN=0.06 (brows to nose bridge), smooth blend by height.
+- FINAL pistol clip: blender_workflow/fire_fps_pistol.py (hands env as v3) -> fin/frames; muzzle computed from front-most slide verts; arms parented to gun (rigid recoil). Then mux sound (22 shots, frame 20+3k @60fps) -> webm + baseline mp4.
