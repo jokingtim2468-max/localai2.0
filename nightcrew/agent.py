@@ -165,5 +165,23 @@ def run_turn(history: list, emit, approve=lambda n, a: True, model: str = "",
                 msgs.append({"role": "user", "content": "(system) Stop repeating tools. Answer now using what they returned."})
     except Exception as e:  # noqa: BLE001
         emit("error", str(e))
+    record_trace(msgs[1:], model)          # becomes training data later (see training/dataset.py)
     emit("done", {})
     return shown
+
+
+def record_trace(msgs: list, model: str) -> None:
+    """Append this turn (user request, tool calls, real results, answer) to
+    data/traces/YYYY-MM.jsonl. Only turns that ran at least one tool. Never raises."""
+    try:
+        import time
+        from . import paths
+        if not any(m.get("role") == "tool" for m in msgs):
+            return
+        d = paths.data("traces")
+        d.mkdir(exist_ok=True)
+        rec = {"ts": int(time.time()), "model": model, "messages": msgs}
+        with open(d / time.strftime("%Y-%m.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, default=str) + "\n")
+    except Exception:
+        pass
