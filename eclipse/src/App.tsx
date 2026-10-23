@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { get, initCore, post } from "./api";
+import { Builder } from "./Builder";
 import { Chat } from "./Chat";
 import { Icon } from "./icons";
 import { Models } from "./Models";
@@ -79,11 +80,12 @@ export function App() {
     id === "chat" ? <Chat model={model} setModel={setModel} log={log} />
       : id === "models" ? <Models model={model} setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "recommend" ? <Recommend setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
+      : id === "gui" ? <Builder />
       : id === "settings" ? <Settings />
       : <Planned id={id} />;
 
   return (
-    <div className="shell" style={{ gridTemplateColumns: `48px 1fr ${inspector ? "280px" : "0px"}` }}>
+    <div className="shell" style={{ gridTemplateColumns: `48px 1fr ${inspector && on !== "gui" ? "280px" : "0px"}` }}>
       <nav className="rail">
         {SCREENS.map(([id, name]) => (
           <button key={id} title={name} aria-label={name} className={on === id ? "on" : ""} onClick={() => open(id)}><Icon name={id} /></button>
@@ -104,7 +106,7 @@ export function App() {
           <div key={id} style={{ display: on === id ? "flex" : "none", flex: 1, minHeight: 0, flexDirection: "column" }}>{page(id)}</div>
         ))}
       </section>
-      <aside className="inspector" style={{ display: inspector ? "block" : "none" }}>
+      <aside className="inspector" style={{ display: inspector && on !== "gui" ? "block" : "none" }}>
         <h3>This machine</h3>
         {hw ? (
           <div className="muted">

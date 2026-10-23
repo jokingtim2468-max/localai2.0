@@ -116,3 +116,46 @@ body::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;op
 .seg button{background:none;border:0;padding:5px 12px;border-radius:var(--r-sm);color:var(--muted);cursor:pointer}
 .seg button.on{background:var(--raised);color:var(--text);box-shadow:inset 0 -2px 0 var(--accent)}
 .table td.num{white-space:nowrap}
+/* ---- Builder ---- */
+.builder{display:flex;flex-direction:column;height:100%;min-height:0}
+.b-top{display:flex;gap:8px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--panel)}
+.b-top .grow{flex:1}.b-top .sep{width:1px;height:22px;background:var(--border)}
+.b-body{flex:1;display:grid;grid-template-columns:150px 1fr 250px;min-height:0}
+.b-palette,.b-props{background:var(--panel);overflow:auto;padding:12px}
+.b-palette{border-right:1px solid var(--border)}.b-props{border-left:1px solid var(--border)}
+.b-palette h3,.b-props h3{margin:0 0 8px;font-size:12px;font-weight:600}
+.b-add{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:var(--r-sm);padding:6px 8px;color:var(--text);cursor:pointer}
+.b-add:hover{background:var(--raised);border-color:var(--border)}
+.small{font-size:11.5px;line-height:1.45}
+.b-props label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:var(--muted);margin-bottom:8px}
+.b-props .field{width:100%}
+.b-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.b-props .row{margin:6px 0}
+.ghost.on{border-color:var(--muted);color:var(--text)}
+.danger{color:var(--danger)!important}
+input[type=color]{width:100%;height:28px;background:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:2px}
+.b-stage{position:relative;overflow:auto;padding:16px;background:var(--bg)}
+.b-canvas{position:relative;transform-origin:0 0;background:#0A0A0A;outline:1px solid var(--border);
+  background-image:radial-gradient(circle,#1d1d1d 1px,transparent 1px);background-size:16px 16px}
+.b-empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--muted);font-size:15px;padding:40px;text-align:center}
+.b-busy{position:absolute;top:24px;left:50%;transform:translateX(-50%);background:var(--raised);border:1px solid var(--border);border-radius:var(--r-md);padding:6px 12px;box-shadow:var(--e2)}
+.b-el{position:absolute;cursor:move;user-select:none}
+.b-el:hover{outline:1px dashed #4a4a4a}
+.b-el.on{outline:1px solid var(--accent)}
+.b-handle{position:absolute;right:-5px;bottom:-5px;width:10px;height:10px;background:var(--bg);border:1px solid var(--accent);cursor:nwse-resize}
+.b-edit{position:absolute;inset:0;background:var(--raised);outline:1px solid var(--accent);padding:4px 6px;cursor:text;user-select:text;white-space:pre-wrap;overflow:auto}
+.b-el>div,.b-el>label{width:100%;height:100%;overflow:hidden}
+.b-text{white-space:pre-wrap}.b-text.heading{font-size:32px;font-weight:600;line-height:1.2}
+.b-btn{display:flex;align-items:center;justify-content:center;background:var(--raised);border:1px solid var(--border);border-radius:6px}
+.b-btn.primary{color:#000;font-weight:600}
+.b-field{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:8px 10px;display:flex;align-items:center;justify-content:space-between}
+.b-field.tall{align-items:flex-start}
+.b-check{display:flex;align-items:center;gap:6px}
+.b-img{display:grid;place-items:center;background:var(--raised);border:1px dashed #3a3a3a;color:var(--muted)}
+.b-img img{width:100%;height:100%;object-fit:cover}
+.b-div{border-top:1px solid var(--border);height:0!important;margin-top:1px}
+.b-menu{position:fixed;z-index:60;width:290px;background:#1A1A1A;border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--e3);padding:6px;display:flex;flex-direction:column}
+.b-menu-ask{display:flex;gap:6px;padding:4px 4px 8px;border-bottom:1px solid var(--border);margin-bottom:4px}
+.b-menu-ask .field{flex:1}
+.b-menu>button{background:none;border:0;text-align:left;padding:7px 10px;border-radius:var(--r-sm);cursor:pointer}
+.b-menu>button:hover{background:var(--panel)}

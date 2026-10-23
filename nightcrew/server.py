@@ -180,6 +180,24 @@ def api_recommend():
     return jsonify(catalog.recommend(installed=have))
 
 
+@app.post("/api/builder/<action>")
+def api_builder(action):
+    if (g := guard()):
+        return g
+    from . import builder
+    b = request.get_json(force=True) or {}
+    try:
+        if action == "generate":
+            return jsonify({"elements": builder.generate(b.get("prompt", ""))})
+        if action == "edit":
+            return jsonify({"element": builder.edit(b.get("element", {}), b.get("doc", []), b.get("instruction", ""))})
+        if action == "save":
+            return jsonify({"path": builder.save(b.get("name", "screen"), [builder.clean(x) for x in b.get("doc", [])])})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+    return jsonify({"error": "unknown action"}), 404
+
+
 @app.get("/api/setup")
 def api_setup():
     from . import model_setup
