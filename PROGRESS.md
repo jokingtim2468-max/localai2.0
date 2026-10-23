@@ -20,3 +20,4 @@ Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
 - Mask decision: BALACLAVA ONLY (bandana dropped). Classic plain black knit (BalaclavaKnit mat, base 0.004, sheen 0.06), no logo. Hoodie plain grey-white (logo removed). Skin darker, matte.
   Rebuild: MASK=balaclava BALACLAVA=<uploads>/8a168f46-balaclava.glb blender ... char.py -- <hood.glb> <bandana.glb unused> <out>
 - Rifle chosen: MK18 (game/assets/rifle_mk18.glb, flat colours, no logo textures). Next: animated fire with hands, rifle_burst sound.
+- Balaclava eye hole narrowed: HOLE_UP=0.2 HOLE_DOWN=0.06 (brows to nose bridge), smooth blend by height.

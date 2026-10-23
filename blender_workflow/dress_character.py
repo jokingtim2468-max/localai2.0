@@ -116,6 +116,28 @@ def add_balaclava():
             if b:
                 for l in list(b.inputs["Alpha"].links): m.node_tree.links.remove(l)
                 b.inputs["Alpha"].default_value = 1.0
+    # eye opening: only from just under the brows to just over the nose bridge
+    up_f, down_f = float(os.environ.get("HOLE_UP", "0.2")), float(os.environ.get("HOLE_DOWN", "0.06"))
+    for o in parts:
+        bpy.context.view_layer.update()
+        bm = bmesh.new(); bm.from_mesh(o.data); bm.verts.ensure_lookup_table()
+        mw = o.matrix_world; mi = mw.inverted()
+        wpos = {v.index: mw @ v.co for v in bm.verts}
+        front_y = min(p.y for p in wpos.values())
+        rim = [v for v in bm.verts if v.is_boundary and wpos[v.index].y < front_y + 0.06 and wpos[v.index].z > hl.z + (hh.z - hl.z) * 0.35]
+        if not rim: bm.free(); continue
+        zs = [wpos[v.index].z for v in rim]; lo_z, hi_z = min(zs), max(zs); H = hi_z - lo_z; mid = (lo_z + hi_z) / 2
+        print("EYEHOLE rim", len(rim), "height", round(H, 4))
+        for v in bm.verts:
+            p = wpos[v.index]
+            if p.y > front_y + 0.08: continue
+            d = min((p - wpos[r.index]).length for r in rim)
+            fall = max(0.0, 1 - d / (H * 0.9))
+            if fall <= 0: continue
+            t = min(1.0, max(0.0, (p.z - lo_z) / H))                 # smooth blend: bottom lifts, top drops, sides in between
+            dz = (H * up_f * (1 - t) - H * down_f * t) * fall
+            v.co = mi @ (p + mathutils.Vector((0, 0, dz)))
+        bm.to_mesh(o.data); bm.free()
     arm = next((o for o in sc.objects if o.type == "ARMATURE"), None)
     bone = next((b.name for b in arm.data.bones if "head" in b.name.lower()), None) if arm else None
     for o in parts:
