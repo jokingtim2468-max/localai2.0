@@ -8,3 +8,4 @@ Licence text: http://creativecommons.org/licenses/by/4.0/
 Pistol: "Glock 9mm Flamengo" by Japonês - https://sketchfab.com/3d-models/glock-9mm-flamengo-aa0dd1e47c7f4b2c8c20acf042b2809d - CC-BY-4.0. Changes: crest, camo, logos and all branding removed; new finishes.
 Sounds: "Shot Beretta M12 9mm" (#0437) and "Rifle shot 1" (#2853) by Joseph SARDIN, BigSoundBank.com, CC0.
 Map textures/props: Poly Haven (polyhaven.com), CC0.
+Rifle: 'Low-poly DD MK18' by notcplkerry / D_U, CC-BY-4.0 (flat colours, no logos). In-game name must not use the real maker's brand.
