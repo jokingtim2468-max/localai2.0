@@ -1,0 +1,150 @@
+import bpy, sys, os, math, mathutils, bmesh
+body, bandana, OUT = sys.argv[sys.argv.index("--") + 1:]
+bpy.ops.wm.read_factory_settings(use_empty=True)
+bpy.ops.import_scene.gltf(filepath=body)
+sc = bpy.context.scene
+for o in [o for o in sc.objects if o.name.startswith("Icosphere")]:      # stray helper sphere
+    bpy.data.objects.remove(o)
+obj = {o.data.materials[0].name: o for o in sc.objects if o.type == "MESH" and o.data.materials}
+
+def bsdf(m):
+    return m.node_tree.nodes["Principled BSDF"]
+
+# 1) dark skin: tint the face texture (keeps its shading and detail)
+face = obj["ted_facemap"].data.materials[0]; nt = face.node_tree; b = bsdf(face)
+src = b.inputs["Base Color"].links[0].from_socket
+hsv = nt.nodes.new("ShaderNodeHueSaturation")
+hsv.inputs["Saturation"].default_value = 1.15; hsv.inputs["Value"].default_value = 0.2
+mul = nt.nodes.new("ShaderNodeMix"); mul.data_type = "RGBA"; mul.blend_type = "MULTIPLY"
+mul.inputs["Factor"].default_value = 1.0; mul.inputs[7].default_value = (0.62, 0.4, 0.28, 1)
+nt.links.new(src, hsv.inputs["Color"]); nt.links.new(hsv.outputs["Color"], mul.inputs[6]); nt.links.new(mul.outputs[2], b.inputs["Base Color"])
+
+# 2) black gloves: the hands become matte black fabric/leather
+g = bpy.data.materials.new("BlackGloves"); g.use_nodes = True; gb = bsdf(g)
+gb.inputs["Base Color"].default_value = (0.012, 0.012, 0.013, 1); gb.inputs["Roughness"].default_value = 0.6
+gb.inputs["Specular IOR Level"].default_value = 0.15; gb.inputs["Roughness"].default_value = 0.75
+nz = g.node_tree.nodes.new("ShaderNodeTexNoise"); nz.inputs["Scale"].default_value = 900
+bump = g.node_tree.nodes.new("ShaderNodeBump"); bump.inputs["Strength"].default_value = 0.08
+g.node_tree.links.new(nz.outputs["Fac"], bump.inputs["Height"]); g.node_tree.links.new(bump.outputs["Normal"], gb.inputs["Normal"])
+hands = obj["hands_w"]; hands.data.materials.clear(); hands.data.materials.append(g)
+
+def add_bandana():
+    """Cloth ring from the nose to the neck, shrink-wrapped onto the face at low detail so it
+    drapes over the lips instead of tracing them; dressed in the bandana model's paisley fabric."""
+    bpy.ops.import_scene.gltf(filepath=bandana)
+    bmat = next(m for m in bpy.data.materials if m.name.startswith("Material_003"))
+    for o in [o for o in sc.objects if o.type == "MESH" and bmat.name in [m.name for m in o.data.materials]]:
+        bpy.data.objects.remove(o)
+    for o in [o for o in sc.objects if o.name.startswith("Icosphere")]:
+        bpy.data.objects.remove(o)
+    head = obj["ted_facemap"]
+    NOSE, NECK = float(os.environ.get("NOSE", 1.262)), float(os.environ.get("NECK", 1.135))
+    pts = [head.matrix_world @ mathutils.Vector(c) for c in head.bound_box]
+    cx = sum(p.x for p in pts) / 8; cy = sum(p.y for p in pts) / 8
+    bpy.ops.mesh.primitive_cylinder_add(vertices=28, radius=0.11, depth=NOSE - NECK, end_fill_type="NOTHING",
+                                        location=(cx, cy, (NOSE + NECK) / 2))
+    mask = bpy.context.active_object; mask.name = "BandanaMask"
+    bm = bmesh.new(); bm.from_mesh(mask.data)
+    vertical = [e for e in bm.edges if abs(e.verts[0].co.z - e.verts[1].co.z) > 1e-4]
+    bmesh.ops.subdivide_edges(bm, edges=vertical, cuts=5, use_grid_fill=True)
+    bm.to_mesh(mask.data); bm.free()
+    sw = mask.modifiers.new("Wrap", "SHRINKWRAP"); sw.target = head; sw.wrap_method = "NEAREST_SURFACEPOINT"
+    sw.wrap_mode = "ON_SURFACE"; sw.offset = 0.008
+    cs = mask.modifiers.new("Relax", "CORRECTIVE_SMOOTH"); cs.factor = 0.6; cs.iterations = 6
+    sol = mask.modifiers.new("Thickness", "SOLIDIFY"); sol.thickness = 0.0015; sol.offset = 1
+    sub = mask.modifiers.new("Smooth", "SUBSURF"); sub.levels = 1; sub.render_levels = 2
+    mask.data.polygons.foreach_set("use_smooth", [True] * len(mask.data.polygons))
+    nt = bmat.node_tree; pb = nt.nodes["Principled BSDF"]
+    for name in ("Metallic", "Roughness", "Normal"):                # cotton: no metal, no old bump map
+        for l in list(pb.inputs[name].links): nt.links.remove(l)
+    pb.inputs["Metallic"].default_value = 0.0; pb.inputs["Roughness"].default_value = 0.85
+    pb.inputs["Specular IOR Level"].default_value = 0.2
+    col = pb.inputs["Base Color"].links[0].from_node
+    col.image = bpy.data.images.load(os.path.join(OUT, "paisley_tile.png"))
+    for l in list(col.inputs["Vector"].links): nt.links.remove(l)
+    map_ = nt.nodes.new("ShaderNodeMapping"); map_.inputs["Scale"].default_value = (4.5, 0.95, 1)
+    uvn = nt.nodes.new("ShaderNodeUVMap")
+    nt.links.new(uvn.outputs["UV"], map_.inputs["Vector"]); nt.links.new(map_.outputs["Vector"], col.inputs["Vector"])
+    bmat.blend_method = "OPAQUE"
+    mask.data.materials.append(bmat)
+    arm = next((o for o in sc.objects if o.type == "ARMATURE"), None)
+    bone = next((b.name for b in arm.data.bones if "head" in b.name.lower()), None) if arm else None
+    if bone:
+        mw = mask.matrix_world.copy(); mask.parent = arm; mask.parent_type = "BONE"; mask.parent_bone = bone; mask.matrix_world = mw
+    obj["mouth"].hide_render = True
+
+def add_balaclava():
+    """Fit the balaclava model to this head and pin it to the head bone."""
+    before = set(sc.objects)
+    bpy.ops.import_scene.gltf(filepath=os.environ["BALACLAVA"])
+    new = [o for o in sc.objects if o not in before]
+    for o in [o for o in new if o.name.startswith("Icosphere")]:
+        bpy.data.objects.remove(o)
+    parts = [o for o in sc.objects if o not in before and o.type == "MESH"]
+    for o in parts:
+        for m in list(o.modifiers):                 # its own rig would bend it back to where it came from
+            o.modifiers.remove(m)
+        mw = o.matrix_world.copy(); o.parent = None; o.matrix_world = mw
+    for o in [o for o in sc.objects if o not in before and o.type == "ARMATURE"]:
+        bpy.data.objects.remove(o)
+    for o in [o for o in sc.objects if o not in before and o.type == "EMPTY"]:
+        bpy.data.objects.remove(o)
+    def box(objs):
+        pts = [o.matrix_world @ mathutils.Vector(c) for o in objs for c in o.bound_box]
+        lo = mathutils.Vector([min(p[i] for p in pts) for i in range(3)]); hi = mathutils.Vector([max(p[i] for p in pts) for i in range(3)])
+        return lo, hi
+    hl, hh = box([obj["ted_facemap"]]); bl, bh = box(parts)
+    pad = mathutils.Vector((1.14, 1.12, 1.06))          # a knitted layer sits a little off the skin
+    scale = mathutils.Vector([(hh[i] - hl[i]) * pad[i] / (bh[i] - bl[i]) for i in range(3)])
+    hc, bc = (hl + hh) / 2, (bl + bh) / 2
+    hc.z += (hh.z - hl.z) * 0.02
+    for o in parts:
+        o.matrix_world = (mathutils.Matrix.Translation(hc) @ mathutils.Matrix.Diagonal((*scale, 1))
+                          @ mathutils.Matrix.Translation(-bc) @ o.matrix_world)
+        for m in o.data.materials:
+            m.blend_method = "OPAQUE"
+            b = m.node_tree.nodes.get("Principled BSDF")
+            if b:
+                for l in list(b.inputs["Alpha"].links): m.node_tree.links.remove(l)
+                b.inputs["Alpha"].default_value = 1.0
+    arm = next((o for o in sc.objects if o.type == "ARMATURE"), None)
+    bone = next((b.name for b in arm.data.bones if "head" in b.name.lower()), None) if arm else None
+    for o in parts:
+        if bone:
+            mw = o.matrix_world.copy(); o.parent = arm; o.parent_type = "BONE"; o.parent_bone = bone; o.matrix_world = mw
+    obj["mouth"].hide_render = True
+    print("BALACLAVA fitted, bone:", bone)
+
+MASK = os.environ.get("MASK", "bandana")
+add_bandana() if MASK == "bandana" else add_balaclava()
+
+# shoes: plain black leather (the original texture had a brand swoosh)
+sh = bpy.data.materials.new("Leather"); sh.use_nodes = True; shb = sh.node_tree.nodes["Principled BSDF"]
+shb.inputs["Base Color"].default_value = (0.015, 0.015, 0.016, 1); shb.inputs["Roughness"].default_value = 0.45
+shb.inputs["Specular IOR Level"].default_value = 0.35
+shoes = obj["bbshoes_6"]; shoes.data.materials.clear(); shoes.data.materials.append(sh)
+
+# portrait: three-quarter, head and shoulders + a full body shot
+w = bpy.data.worlds.new("W"); sc.world = w; w.use_nodes = True
+w.node_tree.nodes["Background"].inputs[0].default_value = (0.06, 0.06, 0.07, 1)
+for loc, e in (((1.2, -1.6, 2.2), 260), ((-1.6, -0.6, 1.6), 90), ((0.2, 1.8, 2.0), 140)):
+    bpy.ops.object.light_add(type="AREA", location=loc); L = bpy.context.active_object
+    L.data.energy, L.data.size = e, 1.2
+    t = bpy.data.objects.new("T", None); sc.collection.objects.link(t); t.location = (0, 0, 1.1)
+    L.constraints.new("TRACK_TO").target = t
+sc.render.engine = "BLENDER_EEVEE_NEXT"
+for name, cam_loc, aim, lens, res in (("face", (0.35, -0.75, 1.3), (0, 0, 1.24), 60, (900, 900)),
+                                       ("body", (1.3, -3.2, 1.25), (0, 0, 0.8), 50, (900, 1200))):
+    bpy.ops.object.camera_add(location=cam_loc); cam = bpy.context.active_object; cam.data.lens = lens
+    t = bpy.data.objects.new("A", None); sc.collection.objects.link(t); t.location = aim
+    cam.constraints.new("TRACK_TO").target = t; sc.camera = cam
+    sc.render.resolution_x, sc.render.resolution_y = res
+    sc.render.filepath = os.path.join(OUT, f"char_{MASK}_{name}.png"); bpy.ops.render.render(write_still=True)
+
+# game export: rigged character with the mask attached to the head bone
+for o in [o for o in sc.objects if o.type in ("CAMERA", "LIGHT", "EMPTY") and not o.children]:
+    bpy.data.objects.remove(o)
+sc["credits"] = ("Character: 'i met my wife hood' by photon (that one larry), CC-BY-4.0. "
+                 "Bandana: 'Bandana Mask' by Tactical_Gamer, CC-BY-4.0. Balaclava: 'balaclava' by local.yany, CC-BY-4.0. "
+                 "Modified: skin tone, gloves, shoes, mask fitting.")
+bpy.ops.export_scene.gltf(filepath=os.path.join(OUT, f"character_{MASK}.glb"), export_format="GLB", export_extras=True)
