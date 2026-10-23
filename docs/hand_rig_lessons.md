@@ -25,6 +25,14 @@ Drills (blender_workflow/hand_rig_drills.py): 1) open -> fist, 2) grip a round s
   each step (each bone's own vertices, via the evaluated mesh) against the object's BVH, 0.8 mm margin.
   Nothing can pass through, whatever the finger thickness.
 
+## Round 3: the character's own hands (user: "hands are still not fixed")
+- The drill rig was only a test hand; the character still used the old Valve finger curl.
+- blender_workflow/hands_fix.py ports the drill method to the Valve-biped glove (no re-skin needed):
+  hinge per joint = bone direction x palm direction (palm side read from the rest curl of the middle finger),
+  sign picked so the fingertip moves to the palm pocket, joint limits 90/100/75 (thumb 55),
+  knuckle-first 2 deg steps, stop when that finger's deformed glove vertices touch the gun (BVH, 0.8 mm).
+- Used by draco_hold.py and fire_draco.py (set OLDCURL=1 for the old behaviour). Support hand moved onto the mag.
+
 ## Next
 - Re-rig the character's glove mesh with this bone layout (same roll + limits), then run the contact grip on the
   pistol grip and the Draco grip/handguard using the gun meshes as the BVH.

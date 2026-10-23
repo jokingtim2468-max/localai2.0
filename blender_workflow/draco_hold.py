@@ -163,10 +163,11 @@ def curl(side, palm_n, deg, thumb_deg):
 
 # right hand: hand upright on the grip, palm facing the gun's left side (+X), fingers wrap round the front
 orient_hand("R", tuple(float(x) for x in os.environ.get("RF", "0.0,-0.55,0.8").split(",")), (0.2, -0.95, 0.2))
-None if os.environ.get("NOCURL") else curl("R", None, (50, 60, 40), 20)
+exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "hands_fix.py")).read())   # contact grip (hand drills)
+None if os.environ.get("NOCURL") else (grasp_valve("R", gun_parts) if not os.environ.get("OLDCURL") else curl("R", None, (50, 60, 40), 20))
 # left hand: support hand cupping the right fingers from the other side
 orient_hand("L", tuple(float(x) for x in os.environ.get("LF", "-0.8,-0.3,0.45").split(",")), (-0.1, -0.95, 0.15))
-None if os.environ.get("NOCURL") else curl("L", None, (70, 75, 50), 35)
+None if os.environ.get("NOCURL") else (grasp_valve("L", gun_parts) if not os.environ.get("OLDCURL") else curl("L", None, (70, 75, 50), 35))
 print("FINGERS", FING["R"], [chain(finger("R", i)) for i in range(5)][:2])
 
 sc.frame_set(1)
