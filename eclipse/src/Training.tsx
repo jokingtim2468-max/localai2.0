@@ -12,6 +12,7 @@ const SOURCES: [string, string][] = [
   ["web", "Web search, reading pages and citing the link (real searches, done now)"],
   ["memory", "Your saved preferences"],
   ["media", "3D models, materials, animation, renders (Blender) and video editing (ffmpeg), each script run and kept only if it works"],
+  ["blender_code", "Real Blender Python code: ~1,560 documented functions and scripts from Blender's own add-ons and templates (GPL) plus bpy-city (MIT) and ProceduralBuildingGenerator (GPL)"],
   ["cpp", "C and C++: thousands of public examples (Magicoder MIT, CodeFeedback Apache-2.0)"],
   ["skills", "The built-in how-to guides as questions and answers"],
   ["code", "Files from your own project folders, to learn your style"],

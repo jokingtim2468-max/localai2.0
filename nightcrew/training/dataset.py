@@ -357,7 +357,7 @@ CPP_SOURCES = [
 ]
 
 DEFAULTS = {"traces": True, "fixes": True, "drills": True, "honesty": True, "typos": True, "memory": True,
-            "spelling": True, "reading": True, "web": True, "media": True, "cpp": True,
+            "spelling": True, "reading": True, "web": True, "media": True, "cpp": True, "blender_code": True,
             "skills": False, "code": False, "code_folders": [], "cpp_max": 6000, "media_n": 300, "web_n": 40}
 
 
@@ -383,6 +383,9 @@ def build(opts: dict | None = None, log=print) -> dict:
         parts += from_code(o["code_folders"])
     if o["web"]:
         parts += web(o["web_n"], log=log)
+    if o.get("blender_code"):
+        from . import blender_code
+        parts += blender_code.examples(log)
     if o["media"]:
         from . import media
         parts += media.examples(o["media_n"], log=log)
