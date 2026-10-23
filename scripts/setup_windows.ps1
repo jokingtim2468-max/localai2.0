@@ -9,3 +9,5 @@ Write-Host "Ollama env set. Quit Ollama from the tray and start it again so it p
 # 2) Python deps + the model (pull + copy to qwen-abliterated, with a progress bar).
 python -m pip install -r requirements.txt
 python -m nightcrew.model_setup
+# 3) Desktop + Start-menu shortcut that opens Eclipse in its own window.
+python make_shortcut.py

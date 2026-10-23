@@ -49,8 +49,24 @@ def guard():
     return None
 
 
+ECLIPSE = paths.HERE.parent / "eclipse" / "dist"
+
+
 @app.get("/")
 def index():
+    # The desktop window shows Eclipse when it is built; Night Crew's page otherwise.
+    if (ECLIPSE / "index.html").is_file():
+        return send_from_directory(ECLIPSE, "index.html")
+    return send_from_directory(STATIC, "index.html")
+
+
+@app.get("/assets/<path:p>")
+def eclipse_assets(p):
+    return send_from_directory(ECLIPSE / "assets", p)
+
+
+@app.get("/nightcrew")
+def nightcrew_page():
     return send_from_directory(STATIC, "index.html")
 
 

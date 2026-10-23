@@ -1,7 +1,8 @@
 // Talks to the Python core (sidecar) over 127.0.0.1. Inside Tauri the Rust side tells us
 // the port it started the core on; in a plain browser (dev/e2e) it is 5173.
 const H = { "Content-Type": "application/json", "X-NC": "1" };
-let base = "http://127.0.0.1:5173";
+// Served by the core itself (desktop window) -> same origin. Vite dev server (:1420) -> :5173.
+let base = location.port === "1420" ? "http://127.0.0.1:5173" : "";
 
 export async function initCore(): Promise<string> {
   const w = window as unknown as { __TAURI_INTERNALS__?: unknown };

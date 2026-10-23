@@ -35,3 +35,9 @@ Recreate files listed above per their docstrings; run tests; commit; push
   resident model (keep_alive -1; foreign model keep_alive 0). Agent auto-nudges up a tier after
   2 consecutive failed run_command. Tests: tests/test_setup_escalation.py.
 - scripts/setup_windows.ps1: OLLAMA_MAX_LOADED_MODELS=1, NUM_PARALLEL=1, FLASH_ATTENTION=1, KV q4_0.
+
+## Desktop app
+- desktop.py: single-instance lock (port 47615), core on a free port, pywebview native window.
+- Core serves eclipse/dist at / (committed so the PC needs no Node); old UI at /nightcrew.
+- make_shortcut.py: Windows Desktop + Start-menu .lnk (pythonw, icon.ico); macOS ~/Applications/Eclipse.app.
+- Rebuild UI after changes: `cd eclipse && npx vite build` and commit dist.
