@@ -16,8 +16,8 @@ src = b.inputs["Base Color"].links[0].from_socket
 hsv = nt.nodes.new("ShaderNodeHueSaturation")
 hsv.inputs["Saturation"].default_value = 1.15; hsv.inputs["Value"].default_value = 0.2
 mul = nt.nodes.new("ShaderNodeMix"); mul.data_type = "RGBA"; mul.blend_type = "MULTIPLY"
-mul.inputs["Factor"].default_value = 1.0; mul.inputs[7].default_value = (0.62, 0.4, 0.28, 1)
-nt.links.new(src, hsv.inputs["Color"]); nt.links.new(hsv.outputs["Color"], mul.inputs[6]); nt.links.new(mul.outputs[2], b.inputs["Base Color"])
+mul.inputs["Factor"].default_value = 1.0; mul.inputs[7].default_value = (0.42, 0.26, 0.18, 1)
+nt.links.new(src, hsv.inputs["Color"]); nt.links.new(hsv.outputs["Color"], mul.inputs[6]); nt.links.new(mul.outputs[2], b.inputs["Base Color"]); b.inputs["Specular IOR Level"].default_value = 0.25; b.inputs["Roughness"].default_value = 0.6; hsv.inputs["Saturation"].default_value = 0.8
 
 # 2) black gloves: the hands become matte black fabric/leather
 g = bpy.data.materials.new("BlackGloves"); g.use_nodes = True; gb = bsdf(g)
@@ -94,6 +94,14 @@ def add_balaclava():
         lo = mathutils.Vector([min(p[i] for p in pts) for i in range(3)]); hi = mathutils.Vector([max(p[i] for p in pts) for i in range(3)])
         return lo, hi
     hl, hh = box([obj["ted_facemap"]]); bl, bh = box(parts)
+    # classic plain black balaclava: matte stretch knit, no logo, no coloured trim
+    knit = bpy.data.materials.new("BalaclavaKnit"); knit.use_nodes = True; kb = bsdf(knit)
+    kb.inputs["Base Color"].default_value = (0.004, 0.004, 0.0045, 1); kb.inputs["Roughness"].default_value = 0.9
+    kb.inputs["Specular IOR Level"].default_value = 0.12
+    kb.inputs["Sheen Weight"].default_value = 0.06; kb.inputs["Sheen Tint"].default_value = (0.3, 0.3, 0.32, 1)
+    kn = knit.node_tree.nodes.new("ShaderNodeTexNoise"); kn.inputs["Scale"].default_value = 1500
+    kbu = knit.node_tree.nodes.new("ShaderNodeBump"); kbu.inputs["Strength"].default_value = 0.05
+    knit.node_tree.links.new(kn.outputs["Fac"], kbu.inputs["Height"]); knit.node_tree.links.new(kbu.outputs["Normal"], kb.inputs["Normal"])
     pad = mathutils.Vector((1.14, 1.12, 1.06))          # a knitted layer sits a little off the skin
     scale = mathutils.Vector([(hh[i] - hl[i]) * pad[i] / (bh[i] - bl[i]) for i in range(3)])
     hc, bc = (hl + hh) / 2, (bl + bh) / 2
@@ -101,7 +109,8 @@ def add_balaclava():
     for o in parts:
         o.matrix_world = (mathutils.Matrix.Translation(hc) @ mathutils.Matrix.Diagonal((*scale, 1))
                           @ mathutils.Matrix.Translation(-bc) @ o.matrix_world)
-        for m in o.data.materials:
+        o.data.materials.clear(); o.data.materials.append(knit)
+        for m in []:
             m.blend_method = "OPAQUE"
             b = m.node_tree.nodes.get("Principled BSDF")
             if b:
@@ -117,6 +126,11 @@ def add_balaclava():
 
 MASK = os.environ.get("MASK", "bandana")
 add_bandana() if MASK == "bandana" else add_balaclava()
+
+# hoodie: plain, the printed tree graphic and text removed
+hood = obj["ancestor"].data.materials[0]; hb = bsdf(hood)
+for l in list(hb.inputs["Base Color"].links): hood.node_tree.links.remove(l)
+hb.inputs["Base Color"].default_value = (0.62, 0.63, 0.64, 1); hb.inputs["Specular IOR Level"].default_value = 0.2
 
 # shoes: plain black leather (the original texture had a brand swoosh)
 sh = bpy.data.materials.new("Leather"); sh.use_nodes = True; shb = sh.node_tree.nodes["Principled BSDF"]

@@ -17,6 +17,25 @@ for o in meshes:
     mats = [m.name for m in o.data.materials if m]
     if any(k in "".join(mats) for k in ("ted_facemap", "mouth", "eyeball", "Material_003", "bbshoes", "pants", "Leather")) or o.name == "BandanaMask":
         o.hide_render = True
+ARMB = ("UpperArm", "Forearm", "Hand", "Ulna", "Wrist", "Finger", "Bicep", "Elbow")
+import bmesh
+for o in meshes:
+    if o.hide_render: continue
+    mats = "".join(m.name for m in o.data.materials if m)
+    if "Gloves" in mats: continue
+    if "ancestor" in mats:                       # hoodie: drop the printed logo, plain cloth colour
+        for m in o.data.materials:
+            bsdf = m.node_tree.nodes.get("Principled BSDF")
+            for l in list(bsdf.inputs["Base Color"].links): m.node_tree.links.remove(l)
+            bsdf.inputs["Base Color"].default_value = (0.5, 0.52, 0.53, 1)
+            bsdf.inputs["Specular IOR Level"].default_value = 0.2
+    if os.environ.get("FULLBODY"): continue
+    only = os.environ.get("ONLY", "")
+    keep = {g.index for g in o.vertex_groups if any(k in g.name for k in ARMB) and (not only or f"_{only}_" in g.name)}
+    if not keep: o.hide_render = True; continue
+    bm = bmesh.new(); bm.from_mesh(o.data); dl = bm.verts.layers.deform.active
+    kill = [v for v in bm.verts if not dl or sum(w for gi, w in v[dl].items() if gi in keep) < 0.5]
+    bmesh.ops.delete(bm, geom=kill, context="VERTS"); bm.to_mesh(o.data); bm.free()
 
 def bone_world(name, tail=False):
     b = arm.pose.bones[name]
@@ -31,15 +50,15 @@ GRIP = V((0.0, -0.035, 0.018))                       # grip centre in the pistol
 for o in gun_parts:
     mw = o.matrix_world.copy(); o.parent = gun; o.matrix_world = mathutils.Matrix.Translation(-GRIP) @ mw
 gun.rotation_euler = (0, 0, math.pi)
-gun.location = eye + V((-0.09, -0.42, -0.165))     # character right = -X         # right of centre, out in front, below the eye
+gun.location = eye + V(tuple(float(x) for x in os.environ.get("GUNPOS", "-0.1,-0.33,-0.11").split(",")))     # character right = -X         # right of centre, out in front, below the eye
 bpy.context.view_layer.update()
 
 def target(name, parent, loc):
     e = bpy.data.objects.new(name, None); sc.collection.objects.link(e)
     e.parent = parent; e.location = loc; return e
 
-rh_t = target("RH_target", gun, V((0.0, 0.015, -0.005)))             # right palm on the grip
-lh_t = target("LH_target", gun, V((-0.03, 0.01, -0.02)))             # left hand cups from the support side
+rh_t = target("RH_target", gun, V(tuple(float(x) for x in os.environ.get("RHT", "0.02,-0.07,-0.06").split(","))))             # right palm on the grip
+lh_t = target("LH_target", gun, V(tuple(float(x) for x in os.environ.get("LHT", "-0.045,-0.05,-0.075").split(","))))             # left hand cups from the support side
 r_pole = target("R_pole", None, eye + V((0.35, 0.1, -0.45)))
 l_pole = target("L_pole", None, eye + V((-0.35, 0.1, -0.45)))
 BN = {"R": ("ValveBiped.Bip01_R_UpperArm_26", "ValveBiped.Bip01_R_Forearm_22", "ValveBiped.Bip01_R_Hand_19"),
@@ -115,25 +134,26 @@ def tip(b_chain):
 
 def curl(side, palm_n, deg, thumb_deg):
     """Bend each finger joint; of the two directions keep the one that closes on the grip."""
-    grip = gun.matrix_world.translation
+    grip = gun.matrix_world.translation if side == "R" else wpos(BN["R"][2]) + (gun.matrix_world.translation - wpos(BN["R"][2])) * 0.5
     W_ = wpos(BN[side][2]); f = (wpos(finger(side, 2)) - W_).normalized()
     lat = (wpos(finger(side, 4)) - wpos(finger(side, 1))).normalized()
+    pn = palm_normal(side)
     for i in range(0, 5):
         ch = chain(finger(side, i))
         for k, b in enumerate(ch):
-            a = math.radians(thumb_deg if i == 0 else deg[min(k, 2)])
+            a = math.radians(thumb_deg if i == 0 else (8 if side == "R" and i == 1 else deg[min(k, 2)]))
             ax = lat if i else f                       # fingers hinge across the knuckles, thumb swings over the palm
-            before = (tip(ch) - grip).length
+            before = tip(ch).copy()
             rotate_bone(b, mathutils.Quaternion(ax, a), wpos(b))
-            if (tip(ch) - grip).length > before:
+            if (tip(ch) - before).dot(pn) < 0:              # must close towards the palm
                 rotate_bone(b, mathutils.Quaternion(ax, -2 * a), wpos(b))
 
 # right hand: hand upright on the grip, palm facing the gun's left side (+X), fingers wrap round the front
-orient_hand("R", (0.05, -0.9, 0.35), (0.35, -0.8, 0.45))
+orient_hand("R", (0.0, -0.7, 0.7), (0.2, -0.95, 0.2))
 None if os.environ.get("NOCURL") else curl("R", None, (50, 60, 40), 20)
 # left hand: support hand cupping the right fingers from the other side
-orient_hand("L", (-0.1, -0.85, 0.45), (-0.25, -0.75, 0.55))
-None if os.environ.get("NOCURL") else curl("L", None, (75, 80, 55), 20)
+orient_hand("L", tuple(float(x) for x in os.environ.get("LF", "-0.25,-0.6,0.6").split(",")), (-0.1, -0.95, 0.25))
+None if os.environ.get("NOCURL") else curl("L", None, (70, 75, 50), 35)
 print("FINGERS", FING["R"], [chain(finger("R", i)) for i in range(5)][:2])
 
 sc.frame_set(1)
@@ -148,9 +168,9 @@ ck = m.node_tree.nodes.new("ShaderNodeTexChecker"); ck.inputs["Scale"].default_v
 ck.inputs["Color1"].default_value = (0.32, 0.32, 0.33, 1); ck.inputs["Color2"].default_value = (0.27, 0.27, 0.28, 1)
 m.node_tree.links.new(ck.outputs["Color"], m.node_tree.nodes["Principled BSDF"].inputs["Base Color"]); bp.data.materials.append(m)
 sc.render.engine = "BLENDER_EEVEE_NEXT"; sc.render.resolution_x, sc.render.resolution_y = 960, 540
-shots = {k: v for k, v in {"over": (eye + V((-0.25, 0.25, 0.25)), gun.location, 0.05), "fps": (eye, eye + V((-0.05, -3, -0.42)), 0.05), "side": (eye + V((1.4, -0.5, 0.1)), eye + V((0, -0.25, -0.2)), 0.1)}.items() if k in os.environ.get("SHOTS", "over,fps,side")}
+shots = {k: v for k, v in {"over": (eye + V((-0.25, 0.25, 0.25)), gun.location, 0.05), "fps": (eye, eye + V((0, -3, -0.05)), 0.02), "side": (eye + V((1.4, -0.5, 0.1)), eye + V((0, -0.25, -0.2)), 0.1), "gripR": (gun.location + V((-0.35, 0.05, 0.08)), gun.location, 0.02), "gripL": (gun.location + V((0.35, 0.05, 0.08)), gun.location, 0.02), "top": (eye + V((0, -0.3, 0.9)), eye + V((-0.05, -0.3, -0.1)), 0.05)}.items() if k in os.environ.get("SHOTS", "over,fps,side")}
 for name, (loc, aim, clip) in shots.items():
-    bpy.ops.object.camera_add(location=loc); cam = bpy.context.active_object; cam.data.lens = 22 if name == "fps" else 35
+    bpy.ops.object.camera_add(location=loc); cam = bpy.context.active_object; cam.data.lens = 26 if name == "fps" else 35
     cam.data.clip_start = clip
     a = bpy.data.objects.new("A", None); sc.collection.objects.link(a); a.location = aim
     cam.constraints.new("TRACK_TO").target = a; sc.camera = cam

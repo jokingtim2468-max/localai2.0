@@ -6,3 +6,16 @@ Redo order if lost:
 4. Upload every new thing to NexusNotes (notes: Blender workflow, Game design: hood shooter, Hood map, Open tasks).
 Next: tracers from real barrel tip; hands w/ character_balaclava.glb; inspect anim; rifle anim (user pick M762 / MK18); CoD viewmodel clips.
 Rules: no brands, no switch/auto-sear parts, CC0/CC-BY only, no secrets.
+## Update 2026-10-23
+- User: DON'T push git or notes yet (notes wiped, user redoing). Plan: Steam first (Unreal later), then Roblox port.
+- Gun sound: BigSoundBank CC0 #0437 (Beretta M12 9mm) for pistol, #2853 rifle shot for rifle. URL https://bigsoundbank.com/UPLOAD/mp3/<id>.mp3.
+  Mix: ffmpeg one input per shot, adelay=(20+3k)/60 s, atrim 0.35s, amix normalize=0 -> n19b/pistol_shooting_v2_sound.mp4.
+- Map render running in background (scratchpad/map/out, log run.log).
+- Hands v2: scratchpad/fps/fps2.py (args char_balaclava.glb pistol_drum_blank.glb outdir; env GUNPOS, SHOTS=fps,side,top,over, FULLBODY). Arms-only viewmodel (verts weighted to arm bones), hoodie logo removed (flat grey), trigger finger straight, curl toward palm normal.
+  OPEN: left support hand still not wrapping the grip; gun still small in fps view.
+- Sound fix: re-encoded pistol_with_sound.mp4 (yuv420p main, AAC 48k, faststart) + pistol_sound_only.mp3.
+- Hands v3 OK-ish: run fps_hands.py with GUNPOS=-0.075,-0.43,-0.1 LHT=-0.045,-0.05,-0.062 LF=-0.7,-0.55,-0.1 RHT=0.02,-0.065,-0.025 (ONLY=R|L renders one arm). Fixed one hand at a time; R orient f=(0,-0.7,0.7) t=(0.2,-0.95,0.2).
+- iPad: send videos as .webm (VP9+Opus); mp4 audio silent there.
+- Rifle: sfx/2853 CC0 -> rifle_shot.mp3, rifle_burst.mp3 (8 rds ~700rpm). M762 glb import breaks mag (needs hierarchy flatten); MK18 ref png ok. User to pick.
+- Mask decision: BALACLAVA ONLY (bandana dropped). Classic plain black knit (BalaclavaKnit mat, base 0.004, sheen 0.06), no logo. Hoodie plain grey-white (logo removed). Skin darker, matte.
+  Rebuild: MASK=balaclava BALACLAVA=<uploads>/8a168f46-balaclava.glb blender ... char.py -- <hood.glb> <bandana.glb unused> <out>
