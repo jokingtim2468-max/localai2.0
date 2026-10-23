@@ -13,8 +13,10 @@
     "@fontsource/inter-tight": "^5.2.6",
     "@fontsource/jetbrains-mono": "^5.2.6",
     "@tauri-apps/api": "^2.12.4",
+    "@types/three": "^0.169.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.169.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.12.4",

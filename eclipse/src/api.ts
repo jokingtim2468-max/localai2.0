@@ -2,26 +2,28 @@
 // the port it started the core on; in a plain browser (dev/e2e) it is 5173.
 const H = { "Content-Type": "application/json", "X-NC": "1" };
 // Served by the core itself (desktop window) -> same origin. Vite dev server (:1420) -> :5173.
-let base = location.port === "1420" ? "http://127.0.0.1:5173" : "";
+let _base = location.port === "1420" ? "http://127.0.0.1:5173" : "";
+
+export const base = () => _base;
 
 export async function initCore(): Promise<string> {
   const w = window as unknown as { __TAURI_INTERNALS__?: unknown };
   if (w.__TAURI_INTERNALS__) {
     const { invoke } = await import("@tauri-apps/api/core");
     const port = await invoke<number>("core_port");
-    base = `http://127.0.0.1:${port}`;
+    _base = `http://127.0.0.1:${port}`;
   }
-  return base;
+  return _base;
 }
 
 export async function get<T = any>(path: string): Promise<T> {
-  const r = await fetch(base + path);
+  const r = await fetch(_base + path);
   return r.json();
 }
 
 export async function post<T = any>(path: string, body: unknown = {}): Promise<T> {
   const init = { method: "POST", headers: H, body: JSON.stringify(body) };
-  const r = await fetch(base + path, init);
+  const r = await fetch(_base + path, init);
   return r.json();
 }
 
@@ -31,7 +33,7 @@ export type Ev = { event: string; data: any };
 // approval card can pause the stream until the user answers).
 export async function stream(path: string, body: unknown, onEvent: (e: Ev) => Promise<void> | void) {
   const init = { method: "POST", headers: H, body: JSON.stringify(body) };
-  const res = await fetch(base + path, init);
+  const res = await fetch(_base + path, init);
   if (!res.body) throw new Error("no response body");
   const reader = res.body.getReader();
   const dec = new TextDecoder();

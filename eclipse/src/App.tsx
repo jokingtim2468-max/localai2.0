@@ -8,12 +8,13 @@ import { Cmd, Palette } from "./Palette";
 import { Planned } from "./Planned";
 import { Recommend } from "./Recommend";
 import { Settings } from "./Settings";
+import { Studio } from "./Studio";
 import { Training } from "./Training";
 import { SetupBar } from "./SetupBar";
 
 const SCREENS: [string, string][] = [
   ["chat", "Chat"], ["projects", "Projects"], ["models", "Models"], ["recommend", "Recommended models"], ["train", "Training"], ["game", "Game kit"],
-  ["gui", "GUI builder"], ["shield", "Anti-tamper lab"], ["bench", "Analysis bench"],
+  ["gui", "GUI builder"], ["studio", "3D models"], ["shield", "Anti-tamper lab"], ["bench", "Analysis bench"],
   ["fork", "Open-source adapter"], ["assets", "Assets"],
 ];
 
@@ -82,12 +83,13 @@ export function App() {
       : id === "models" ? <Models model={model} setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "recommend" ? <Recommend setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "gui" ? <Builder />
+      : id === "studio" ? <Studio model={model} />
       : id === "train" ? <Training setModel={(m) => { setModel(m); post("/api/settings", { model: m }); }} />
       : id === "settings" ? <Settings />
       : <Planned id={id} />;
 
   return (
-    <div className="shell" style={{ gridTemplateColumns: `48px 1fr ${inspector && on !== "gui" ? "280px" : "0px"}` }}>
+    <div className="shell" style={{ gridTemplateColumns: `48px 1fr ${inspector && on !== "gui" && on !== "studio" ? "280px" : "0px"}` }}>
       <nav className="rail">
         {SCREENS.map(([id, name]) => (
           <button key={id} title={name} aria-label={name} className={on === id ? "on" : ""} onClick={() => open(id)}><Icon name={id} /></button>
@@ -108,7 +110,7 @@ export function App() {
           <div key={id} style={{ display: on === id ? "flex" : "none", flex: 1, minHeight: 0, flexDirection: "column" }}>{page(id)}</div>
         ))}
       </section>
-      <aside className="inspector" style={{ display: inspector && on !== "gui" ? "block" : "none" }}>
+      <aside className="inspector" style={{ display: inspector && on !== "gui" && on !== "studio" ? "block" : "none" }}>
         <h3>This machine</h3>
         {hw ? (
           <div className="muted">

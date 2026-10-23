@@ -38,3 +38,22 @@ Use the real data above only for the physics (slide, brass, flash). Body/handlin
 - Chest/chin level, not shouldered; right elbow 90–110° tucked, left arm forward 130–150°.
 - Recoil: sharp 15–25° flip, up-right drift, fast snap down. Big orange fireball (short barrel). Brass 3–4 o'clock.
 - GAME: still cap kick at 0.1 ft per user rule; untrained = sloppier return.
+
+# Game research (YouTube via vidIQ)
+## Competitor: OFF1700 Chicago (Roblox hood RP) — youtube.com/watch?v=ndGO0Fb-dIk
+- Map: brick apartment blocks/projects, auto-repair garages with rollup doors, corner stores, gas station, chain-link lots,
+  cracked asphalt, red-painted no-parking curbs, bus stops, trash piles, ATMs. Day/night cycle, neon at night.
+- Cars: SUVs, 90s sedans, muscle sedans, city bikes; lock/unlock, trunk storage, P/R/N/D gears, speedo+fuel HUD.
+- Guns: Glock, AR, Micro ARP, Draco w/ drum; over-shoulder aim, no fixed crosshair, smoke, brass, punchy audio, fast TTK.
+  (WE DO NOT ADD switches/auto-sears — full-auto stays a game setting only.)
+- Damage: bleeding + limb damage, bleed-out screen.
+- Clothing: puffer vests, hoodies, denim, ski masks/balaclavas, hairstyles, tattoos.
+- Economy: player trading, /pay, weight-based grid inventory (item grams), licenses for cars.
+- HUD: clock/date/weather, cash/bank, job; health/armor/hunger/thirst/stamina/weight bars.
+- Avoid: heads clipping car roofs, clunky gear shifting, floaty melee, cluttered chat feed.
+## Tutorial leads
+- Buildings: Ian Hubert "Lazy Tutorials" custom buildings (youtu.be/t_c58ryJ-Sw); geometry-nodes procedural buildings (rNXx_C5NqlE).
+- Cars: low-poly car guides (ub00akPm7kQ Thomas Potter; 05RTwFttTE0 / OWN6huwRFro full blueprint workflow ~9–10k tris).
+- Brass/FX: UE5 casing eject + bounce (W-GZTRWnLZY Infima), muzzle flash without sims (XUlfshL-LXM).
+- FPS arms: Blender→engine viewmodel workflow (1cMAOa6UqMY tsitski), Roblox viewmodel in Blender (1AYMuNefJzY).
+- Clothes: cloth sim for hoodies/jackets (WxA7kGmLCFI, aNJSb5S0ngw).

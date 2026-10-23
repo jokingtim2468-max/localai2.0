@@ -263,6 +263,42 @@ def api_file():
         return jsonify({"error": str(e)}), 400
 
 
+@app.get("/api/model3d/list")
+def api_m3d_list():
+    from . import studio3d
+    return jsonify({"root": str(sandbox.workspace()), "models": studio3d.list_models()})
+
+
+@app.get("/api/model3d/file")
+def api_m3d_file():
+    from . import studio3d
+    try:
+        p = studio3d.model_path(request.args.get("path", ""))
+        return send_from_directory(p.parent, p.name, max_age=0)
+    except sandbox.ToolError as e:
+        return jsonify({"error": str(e)}), 400
+
+
+@app.post("/api/model3d/<action>")
+def api_m3d_action(action):
+    if (g := guard()):
+        return g
+    from . import studio3d
+    b = request.get_json(force=True) or {}
+    try:
+        if action == "save":
+            return jsonify(studio3d.save(b.get("path", ""), b.get("b64", "")))
+        if action == "comment":
+            return jsonify({"comments": studio3d.add_comment(b.get("path", ""), b.get("part", ""), b.get("text", ""), b.get("point"))})
+        if action == "comments":
+            return jsonify({"comments": studio3d.comments(b.get("path", ""))})
+        if action == "prompt":
+            return jsonify({"prompt": studio3d.agent_prompt(b.get("path", ""), b.get("part", ""), b.get("text", ""), b.get("info"))})
+    except (sandbox.ToolError, ValueError) as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"error": "unknown action"}), 404
+
+
 @app.route("/api/chats", methods=["GET", "POST"])
 def api_chats():
     f = paths.data("chats.json")
