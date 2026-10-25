@@ -169,15 +169,21 @@ def curl(side, palm_n, deg, thumb_deg):
 # right hand: hand upright on the grip, palm facing the gun's left side (+X), fingers wrap round the front
 orient_hand("R", (0.0, -0.7, 0.7), (0.2, -0.95, 0.2))
 exec(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "hands_fix.py")).read())
-None if os.environ.get("NOCURL") else grasp_valve("R", gun_parts, straight=(1,))
-if not os.environ.get("NOCURL"):                        # trigger finger: laid straight forward along the frame, off the trigger
-    _ch = chain(finger("R", 1)); _b = _ch[0]
-    _d = (wpos(_ch[1]) - wpos(_b)).normalized()
-    _fwd = (gun.matrix_world.to_3x3() @ V((0, 1, 0))).normalized()
-    rotate_bone(_b, _d.rotation_difference(_fwd), wpos(_b))
-# left hand: support hand cupping the right fingers from the other side
-orient_hand("L", tuple(float(x) for x in os.environ.get("LF", "-0.25,-0.6,0.6").split(",")), (-0.1, -0.95, 0.25))
-None if os.environ.get("NOCURL") else grasp_valve("L", gun_parts)
+None if os.environ.get("NOCURL") else grasp_valve("R", gun_parts, straight=(1,), pass_start=True)
+if not os.environ.get("NOCURL"):
+    # real two-hand pistol grip (USCCA / guns.com): firing hand high on the backstrap, middle finger under the
+    # trigger guard, index straight along the frame; support hand fills the left side of the grip, its four
+    # fingers wrap OVER the firing hand's knuckles, support thumb points forward along the frame under the slide,
+    # firing thumb rests forward on top of the support hand.
+    _fwd = gun.matrix_world.to_3x3() @ V((0, 1, 0))
+    point_finger("R", 1, _fwd)
+# left hand: support hand on the left side of the grip
+orient_hand("L", tuple(float(x) for x in os.environ.get("LF", "-0.6,-0.55,-0.5").split(",")), (-0.1, -0.95, 0.25))
+None if os.environ.get("NOCURL") else grasp_valve("L", gun_parts, straight=(0,), around="R", pass_start=True)
+if not os.environ.get("NOCURL"):
+    _down = gun.matrix_world.to_3x3() @ V((0, 0, -1))
+    point_finger("L", 0, _fwd - _down * 0.22)            # support thumb forward along the frame
+    pass                                                 # firing thumb: left to the contact curl (wraps the backstrap)
 print("FINGERS", FING["R"], [chain(finger("R", i)) for i in range(5)][:2])
 
 sc.frame_set(1)

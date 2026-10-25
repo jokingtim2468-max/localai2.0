@@ -55,8 +55,29 @@ def palm_dir(side):
     return dev.normalized()
 
 
-def grasp_valve(side, gun_objs, amount=1.0, step=2.0, open_first=True, straight=()):
+def hand_tree(glove, own, side):
+    """BVH of one hand's deformed glove (so the other hand can wrap around it without passing through)."""
+    import bmesh
+    dg = bpy.context.evaluated_depsgraph_get()
+    ev = glove.evaluated_get(dg); me = ev.to_mesh()
+    keep = {i for n, ids in own.items() if f"_{side}_" in n for i in ids}
+    bm = bmesh.new(); bm.from_mesh(me); bm.transform(ev.matrix_world)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.index not in keep], context="VERTS")
+    t = BVHTree.FromBMesh(bm); bm.free(); ev.to_mesh_clear()
+    return t
+
+
+def point_finger(side, i, direction):
+    """Lay finger i straight along a world direction (trigger finger on the frame, support thumb forward)."""
+    ch = chain(finger(side, i)); b = ch[0]
+    d = (wpos(ch[1]) - wpos(b)).normalized()
+    rotate_bone(b, d.rotation_difference(direction.normalized()), wpos(b))
+
+
+def grasp_valve(side, gun_objs, amount=1.0, step=2.0, open_first=True, straight=(), around=None, pass_start=False):
     glove = _glove(); own = _owned(glove); trees = _trees(gun_objs)
+    if around:                                              # also wrap around the other hand
+        trees.append(hand_tree(glove, own, around))
     W = wpos(BN[side][2]); f = (wpos(finger(side, 2)) - W).normalized()
     pn = palm_dir(side); pn = (pn - f * pn.dot(f)).normalized()
     pocket = W + f * 0.055 + pn * 0.03                      # where a held grip sits in the palm
@@ -77,9 +98,13 @@ def grasp_valve(side, gun_objs, amount=1.0, step=2.0, open_first=True, straight=
             rotate_bone(b, q.inverted(), wpos(b))
             lim = (THUMB if i == 0 else LIMITS[min(k, 2)]) * amount
             done = 0.0
+            stuck = pass_start and trees and _touch(glove, own, ch[k:], trees)   # already touching at the start: only stop on NEW contact
+
             while done + step <= lim:
                 q = mathutils.Quaternion(ax, math.radians(sgn * step)); rotate_bone(b, q, wpos(b))
-                if trees and _touch(glove, own, ch[k:], trees):
+                if trees and not stuck and _touch(glove, own, ch[k:], trees):
                     rotate_bone(b, q.inverted(), wpos(b)); break
+                if stuck and not _touch(glove, own, ch[k:], trees):
+                    stuck = False
                 done += step
     print("GRASP", side, "done")

@@ -33,6 +33,19 @@ Drills (blender_workflow/hand_rig_drills.py): 1) open -> fist, 2) grip a round s
   knuckle-first 2 deg steps, stop when that finger's deformed glove vertices touch the gun (BVH, 0.8 mm).
 - Used by draco_hold.py and fire_draco.py (set OLDCURL=1 for the old behaviour). Support hand moved onto the mag.
 
+## Round 4: two-hand pistol grip from real reference (guns.com / USCCA "5 key elements")
+Reference: firing hand high on the backstrap, middle finger against the bottom of the trigger guard, lower three
+fingers wrap, index straight on the frame off the trigger; support hand "handshake, rotate forward" fills the empty
+left side of the grip, its four fingers wrap OVER the firing hand's knuckles, support thumb points forward along the
+frame below the slide; firing thumb rests on the support hand. Avoid the "teacup" (support hand cupped underneath).
+- hands_fix.grasp_valve(..., around="R"): the support hand also collides with the firing hand's deformed glove
+  (BVH built from only that hand's vertices), so its fingers wrap over the knuckles instead of through them.
+- pass_start=True: a finger that already touches at the start may slide until it is free, then stops on new contact
+  (otherwise it never moves).
+- point_finger(): lay the trigger finger and the support thumb straight along the gun's forward axis.
+- Hand targets are in the gun's local units: when the gun is rescaled to real size, divide the targets too.
+Settings: GUNPOS=-0.075,-0.43,-0.1 RHT=0.013,-0.045,-0.009 LHT=-0.05,-0.03,-0.008 LF=-0.5,-0.5,-0.7
+
 ## Next
 - Re-rig the character's glove mesh with this bone layout (same roll + limits), then run the contact grip on the
   pistol grip and the Draco grip/handguard using the gun meshes as the BVH.
