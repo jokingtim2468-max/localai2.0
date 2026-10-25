@@ -55,12 +55,14 @@ def palm_dir(side):
     return dev.normalized()
 
 
-def grasp_valve(side, gun_objs, amount=1.0, step=2.0, open_first=True):
+def grasp_valve(side, gun_objs, amount=1.0, step=2.0, open_first=True, straight=()):
     glove = _glove(); own = _owned(glove); trees = _trees(gun_objs)
     W = wpos(BN[side][2]); f = (wpos(finger(side, 2)) - W).normalized()
     pn = palm_dir(side); pn = (pn - f * pn.dot(f)).normalized()
     pocket = W + f * 0.055 + pn * 0.03                      # where a held grip sits in the palm
     for i in range(5):
+        if i in straight:                                   # e.g. trigger finger laid along the frame
+            continue
         ch = chain(finger(side, i))
         for k, b in enumerate(ch):
             nxt = wpos(ch[k + 1]) if k + 1 < len(ch) else tip(ch)
